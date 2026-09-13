@@ -86,6 +86,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-lock"
+version = "3.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "290f7f2596bd5b78a9fec8088ccd89180d7f9f55b94b0576823bbbdc72ee8311"
+dependencies = [
+ "event-listener",
+ "event-listener-strategy",
+ "pin-project-lite",
+]
+
+[[package]]
 name = "async-trait"
 version = "0.1.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -93,7 +104,7 @@ checksum = "82f6aeea286b8eb4dd3431a1be1b59d290ace00f5bfd8e2a159bc2a05e2c1667"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -507,7 +518,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "strsim",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -518,7 +529,7 @@ checksum = "2ac7135c3ef02b2f7833bbeb1be5ba7f966dcde8a87c6b87f65a778d71a02785"
 dependencies = [
  "darling_core",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -608,522 +619,7 @@ checksum = "c6232dd377dcc64799954cbd3a9bb882e9cdc1308ccd87b1c098f1fb2eaf82a8"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
-]
-
-[[package]]
-name = "heycode-agent"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "heycode-attachments",
- "heycode-core",
- "heycode-exec",
- "heycode-llm",
- "heycode-native-tools",
- "heycode-prompt",
- "heycode-runtime",
- "heycode-session",
- "heycode-settings",
- "heycode-telemetry",
- "heycode-tools",
- "heycode-web",
- "futures",
- "serde",
- "serde_json",
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
-name = "heycode-app-server"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "heycode-agent",
- "heycode-authorization",
- "heycode-authorization-api-key",
- "heycode-core",
- "heycode-credentials",
- "heycode-llm",
- "heycode-mcp",
- "heycode-routing",
- "heycode-runtime",
- "heycode-sdk",
- "heycode-session",
- "heycode-settings",
- "futures",
- "serde",
- "serde_json",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
-name = "heycode-attachments"
-version = "0.1.0"
-dependencies = [
- "cap-std",
- "heycode-core",
- "heycode-session",
- "image",
- "nix",
- "sha2 0.10.9",
- "thiserror 2.0.20",
- "tokio-util",
- "uuid",
-]
-
-[[package]]
-name = "heycode-authorization"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "heycode-core",
- "heycode-credentials",
- "thiserror 2.0.20",
- "tokio-util",
-]
-
-[[package]]
-name = "heycode-authorization-api-key"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "heycode-authorization",
- "heycode-core",
- "heycode-credentials",
- "reqwest",
- "serde_json",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
-name = "heycode-catalog-file"
-version = "0.1.0"
-dependencies = [
- "atomic-write-file",
- "heycode-core",
- "heycode-llm",
- "serde",
- "serde_json",
- "thiserror 2.0.20",
- "tokio-util",
- "toml",
-]
-
-[[package]]
-name = "heycode-config"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "atomic-write-file",
- "dirs",
- "heycode-core",
- "heycode-doctor",
- "serde",
- "serde_json",
- "thiserror 2.0.20",
- "tokio-util",
- "toml",
- "toml_edit",
-]
-
-[[package]]
-name = "heycode-core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "serde",
- "serde_json",
- "thiserror 2.0.20",
- "url",
- "uuid",
-]
-
-[[package]]
-name = "heycode-credentials"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "heycode-core",
- "heycode-doctor",
- "heycode-settings",
- "secrecy",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "thiserror 2.0.20",
- "tokio-util",
-]
-
-[[package]]
-name = "heycode-doctor"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "heycode-core",
- "futures",
- "serde",
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
-name = "heycode-exec"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "cap-std",
- "heycode-core",
- "futures",
- "processkit",
- "regex",
- "serde_json",
- "sha2 0.10.9",
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
- "url",
- "uuid",
-]
-
-[[package]]
-name = "heycode-extensions"
-version = "0.1.0"
-dependencies = [
- "cap-fs-ext",
- "cap-std",
- "heycode-core",
- "heycode-settings",
- "nix",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "thiserror 2.0.20",
- "tokio-util",
- "toml",
-]
-
-[[package]]
-name = "heycode-fuzz"
-version = "0.0.0"
-dependencies = [
- "heycode-agent",
- "heycode-config",
- "heycode-llm",
- "heycode-mcp",
- "heycode-session",
- "heycode-tui",
- "libfuzzer-sys",
- "ratatui",
- "serde_json",
- "tempfile",
-]
-
-[[package]]
-name = "heycode-hooks"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "heycode-core",
- "heycode-exec",
- "heycode-trust",
- "futures",
- "serde",
- "serde_json",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
-name = "heycode-http"
-version = "0.1.0"
-dependencies = [
- "heycode-core",
- "futures",
- "httpdate",
- "reqwest",
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
-name = "heycode-llm"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64",
- "chrono",
- "heycode-core",
- "heycode-credentials",
- "heycode-http",
- "futures",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
-name = "heycode-mcp"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "base64",
- "chrono",
- "heycode-config",
- "heycode-core",
- "heycode-credentials",
- "heycode-exec",
- "heycode-http",
- "heycode-settings",
- "heycode-tools",
- "futures",
- "regex",
- "secrecy",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
- "url",
- "uuid",
-]
-
-[[package]]
-name = "heycode-native-tools"
-version = "0.1.0"
-dependencies = [
- "heycode-core",
- "heycode-settings",
- "serde_json",
- "thiserror 2.0.20",
-]
-
-[[package]]
-name = "heycode-onboarding"
-version = "0.1.0"
-dependencies = [
- "heycode-core",
- "thiserror 2.0.20",
-]
-
-[[package]]
-name = "heycode-prompt"
-version = "0.1.0"
-dependencies = [
- "heycode-core",
-]
-
-[[package]]
-name = "heycode-routing"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "heycode-agent",
- "heycode-authorization",
- "heycode-core",
- "heycode-credentials",
- "heycode-llm",
- "heycode-onboarding",
- "heycode-runtime",
- "heycode-settings",
- "serde_json",
- "thiserror 2.0.20",
- "tokio-util",
-]
-
-[[package]]
-name = "heycode-runtime"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "heycode-core",
- "heycode-llm",
- "futures",
- "serde_json",
- "thiserror 2.0.20",
- "tokio-util",
-]
-
-[[package]]
-name = "heycode-sdk"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "heycode-core",
- "serde",
- "serde_json",
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
-name = "heycode-session"
-version = "0.1.0"
-dependencies = [
- "atomic-write-file",
- "chrono",
- "heycode-core",
- "nix",
- "rusqlite",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "thiserror 2.0.20",
- "uuid",
-]
-
-[[package]]
-name = "heycode-settings"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "heycode-core",
- "heycode-doctor",
- "serde_json",
- "thiserror 2.0.20",
- "tokio-util",
-]
-
-[[package]]
-name = "heycode-skills"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "cap-fs-ext",
- "cap-std",
- "heycode-agent",
- "heycode-core",
- "heycode-prompt",
- "heycode-tools",
- "serde_json",
- "thiserror 2.0.20",
-]
-
-[[package]]
-name = "heycode-telemetry"
-version = "0.1.0"
-dependencies = [
- "heycode-core",
- "heycode-settings",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "heycode-tools"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "heycode-core",
- "heycode-exec",
- "heycode-native-tools",
- "heycode-web",
- "serde_json",
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
- "url",
-]
-
-[[package]]
-name = "heycode-trust"
-version = "0.1.0"
-dependencies = [
- "cap-fs-ext",
- "cap-std",
- "heycode-core",
- "serde",
- "sha2 0.10.9",
- "thiserror 2.0.20",
- "toml",
-]
-
-[[package]]
-name = "heycode-tui"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64",
- "crossterm",
- "heycode-agent",
- "heycode-app-server",
- "heycode-authorization",
- "heycode-authorization-api-key",
- "heycode-catalog-file",
- "heycode-config",
- "heycode-core",
- "heycode-credentials",
- "heycode-doctor",
- "heycode-exec",
- "heycode-extensions",
- "heycode-hooks",
- "heycode-llm",
- "heycode-mcp",
- "heycode-onboarding",
- "heycode-routing",
- "heycode-runtime",
- "heycode-session",
- "heycode-settings",
- "heycode-skills",
- "heycode-trust",
- "heycode-ui",
- "futures",
- "pulldown-cmark",
- "ratatui",
- "secrecy",
- "serde_json",
- "syntect",
- "tokio",
- "tokio-util",
- "tui-textarea",
- "unicode-width 0.2.0",
-]
-
-[[package]]
-name = "heycode-ui"
-version = "0.1.0"
-dependencies = [
- "heycode-core",
- "heycode-settings",
- "serde_json",
- "thiserror 2.0.20",
-]
-
-[[package]]
-name = "heycode-web"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "heycode-attachments",
- "heycode-core",
- "heycode-settings",
- "futures",
- "html2text",
- "lopdf",
- "reqwest",
- "serde_json",
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
- "url",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -1164,6 +660,25 @@ checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "event-listener"
+version = "5.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a23add41df1562121a9393cb065eab5146a1242410f23a644851e90cfd669d2"
+dependencies = [
+ "pin-project-lite",
+]
+
+[[package]]
+name = "event-listener-strategy"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8be9f3dfaaffdae2972880079a491a1a8bb7cbed0b8dd7a347f668b4150a3b93"
+dependencies = [
+ "event-listener",
+ "pin-project-lite",
 ]
 
 [[package]]
@@ -1234,6 +749,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
+name = "foldhash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
+
+[[package]]
 name = "form_urlencoded"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1250,7 +771,7 @@ checksum = "94e7099f6313ecacbe1256e8ff9d617b75d1bcb16a6fddef94866d225a01a14a"
 dependencies = [
  "io-lifetimes 2.0.4",
  "rustix 1.1.4",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -1309,7 +830,7 @@ checksum = "9fb9654ba8355388abeb8dcb4fc62f511300867002afc858860463bdd9fe0c44"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -1415,7 +936,7 @@ checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
  "allocator-api2",
  "equivalent",
- "foldhash",
+ "foldhash 0.1.5",
 ]
 
 [[package]]
@@ -1423,6 +944,11 @@ name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash 0.2.0",
+]
 
 [[package]]
 name = "hashlink"
@@ -1438,6 +964,598 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
+
+[[package]]
+name = "heycode-agent"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "atomic-write-file",
+ "cap-fs-ext",
+ "cap-std",
+ "futures",
+ "heycode-attachments",
+ "heycode-code-mode",
+ "heycode-core",
+ "heycode-exec",
+ "heycode-hooks",
+ "heycode-llm",
+ "heycode-native-tools",
+ "heycode-prompt",
+ "heycode-runtime",
+ "heycode-session",
+ "heycode-settings",
+ "heycode-telemetry",
+ "heycode-tools",
+ "heycode-web",
+ "nix",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "heycode-app-server"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures",
+ "heycode-agent",
+ "heycode-authorization",
+ "heycode-authorization-api-key",
+ "heycode-core",
+ "heycode-credentials",
+ "heycode-llm",
+ "heycode-mcp",
+ "heycode-routing",
+ "heycode-runtime",
+ "heycode-sdk",
+ "heycode-session",
+ "heycode-settings",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "heycode-attachments"
+version = "0.1.0"
+dependencies = [
+ "cap-std",
+ "heycode-core",
+ "heycode-session",
+ "image",
+ "nix",
+ "sha2 0.10.9",
+ "thiserror 2.0.20",
+ "tokio-util",
+ "uuid",
+]
+
+[[package]]
+name = "heycode-authorization"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "heycode-core",
+ "heycode-credentials",
+ "thiserror 2.0.20",
+ "tokio-util",
+]
+
+[[package]]
+name = "heycode-authorization-api-key"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "heycode-authorization",
+ "heycode-core",
+ "heycode-credentials",
+ "reqwest",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "heycode-catalog-file"
+version = "0.1.0"
+dependencies = [
+ "atomic-write-file",
+ "heycode-core",
+ "heycode-llm",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+ "tokio-util",
+ "toml",
+]
+
+[[package]]
+name = "heycode-code-mode"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "rquickjs",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "heycode-config"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "atomic-write-file",
+ "cap-fs-ext",
+ "cap-std",
+ "dirs",
+ "heycode-core",
+ "heycode-doctor",
+ "serde",
+ "serde_ignored",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.20",
+ "tokio-util",
+ "toml",
+ "toml_edit",
+ "uuid",
+]
+
+[[package]]
+name = "heycode-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "heycode-credentials"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "heycode-core",
+ "heycode-doctor",
+ "heycode-settings",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.20",
+ "tokio-util",
+]
+
+[[package]]
+name = "heycode-doctor"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures",
+ "heycode-core",
+ "serde",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "heycode-exec"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "cap-std",
+ "futures",
+ "heycode-core",
+ "processkit",
+ "regex",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "heycode-extensions"
+version = "0.1.0"
+dependencies = [
+ "cap-fs-ext",
+ "cap-std",
+ "heycode-core",
+ "heycode-settings",
+ "nix",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.20",
+ "tokio-util",
+ "toml",
+]
+
+[[package]]
+name = "heycode-fuzz"
+version = "0.0.0"
+dependencies = [
+ "heycode-agent",
+ "heycode-config",
+ "heycode-llm",
+ "heycode-mcp",
+ "heycode-session",
+ "heycode-tui",
+ "libfuzzer-sys",
+ "ratatui",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "heycode-hooks"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures",
+ "heycode-core",
+ "heycode-exec",
+ "heycode-trust",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "heycode-http"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "heycode-core",
+ "httpdate",
+ "reqwest",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "heycode-llm"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64",
+ "chrono",
+ "futures",
+ "heycode-core",
+ "heycode-credentials",
+ "heycode-http",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "heycode-mcp"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64",
+ "chrono",
+ "futures",
+ "heycode-config",
+ "heycode-core",
+ "heycode-credentials",
+ "heycode-exec",
+ "heycode-http",
+ "heycode-settings",
+ "heycode-tools",
+ "regex",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "heycode-native-tools"
+version = "0.1.0"
+dependencies = [
+ "heycode-core",
+ "heycode-settings",
+ "serde_json",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "heycode-onboarding"
+version = "0.1.0"
+dependencies = [
+ "heycode-core",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "heycode-prompt"
+version = "0.1.0"
+dependencies = [
+ "heycode-core",
+]
+
+[[package]]
+name = "heycode-routing"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "atomic-write-file",
+ "heycode-agent",
+ "heycode-authorization",
+ "heycode-core",
+ "heycode-credentials",
+ "heycode-llm",
+ "heycode-onboarding",
+ "heycode-runtime",
+ "heycode-settings",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+ "tokio-util",
+ "url",
+]
+
+[[package]]
+name = "heycode-runtime"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures",
+ "heycode-core",
+ "heycode-exec",
+ "heycode-llm",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "heycode-sdk"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "heycode-core",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "heycode-session"
+version = "0.1.0"
+dependencies = [
+ "atomic-write-file",
+ "cap-fs-ext",
+ "cap-std",
+ "chrono",
+ "heycode-core",
+ "nix",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.20",
+ "uuid",
+]
+
+[[package]]
+name = "heycode-settings"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "heycode-core",
+ "heycode-doctor",
+ "serde_json",
+ "thiserror 2.0.20",
+ "tokio-util",
+]
+
+[[package]]
+name = "heycode-skills"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "cap-fs-ext",
+ "cap-std",
+ "heycode-agent",
+ "heycode-core",
+ "heycode-prompt",
+ "heycode-session",
+ "heycode-settings",
+ "heycode-tools",
+ "serde_json",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "heycode-status"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "atomic-write-file",
+ "heycode-agent",
+ "heycode-config",
+ "heycode-core",
+ "heycode-doctor",
+ "heycode-exec",
+ "heycode-llm",
+ "heycode-prompt",
+ "heycode-session",
+ "heycode-settings",
+ "heycode-web",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "heycode-telemetry"
+version = "0.1.0"
+dependencies = [
+ "heycode-core",
+ "heycode-settings",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "heycode-tools"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64",
+ "heycode-attachments",
+ "heycode-core",
+ "heycode-exec",
+ "heycode-native-tools",
+ "heycode-web",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+ "url",
+]
+
+[[package]]
+name = "heycode-trust"
+version = "0.1.0"
+dependencies = [
+ "cap-fs-ext",
+ "cap-std",
+ "heycode-core",
+ "serde",
+ "sha2 0.10.9",
+ "thiserror 2.0.20",
+ "toml",
+]
+
+[[package]]
+name = "heycode-tui"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64",
+ "chrono",
+ "crossterm",
+ "futures",
+ "heycode-agent",
+ "heycode-app-server",
+ "heycode-attachments",
+ "heycode-authorization",
+ "heycode-authorization-api-key",
+ "heycode-catalog-file",
+ "heycode-config",
+ "heycode-core",
+ "heycode-credentials",
+ "heycode-doctor",
+ "heycode-exec",
+ "heycode-extensions",
+ "heycode-hooks",
+ "heycode-llm",
+ "heycode-mcp",
+ "heycode-onboarding",
+ "heycode-prompt",
+ "heycode-routing",
+ "heycode-runtime",
+ "heycode-session",
+ "heycode-settings",
+ "heycode-skills",
+ "heycode-status",
+ "heycode-tools",
+ "heycode-trust",
+ "heycode-ui",
+ "nix",
+ "pulldown-cmark",
+ "ratatui",
+ "secrecy",
+ "serde_json",
+ "sha2 0.10.9",
+ "syntect",
+ "tempfile",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+ "tui-textarea",
+ "unicode-segmentation",
+ "unicode-width 0.2.0",
+ "uuid",
+]
+
+[[package]]
+name = "heycode-ui"
+version = "0.1.0"
+dependencies = [
+ "heycode-core",
+ "heycode-settings",
+ "serde_json",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "heycode-web"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures",
+ "heycode-attachments",
+ "heycode-core",
+ "heycode-settings",
+ "html2text",
+ "lopdf",
+ "reqwest",
+ "serde_json",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+ "url",
+]
 
 [[package]]
 name = "html2text"
@@ -1738,9 +1856,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.14.1"
+version = "2.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07aa2048142242915a31d35844fb311e0e53fcca590c3a0a40dcf1b841fa09eb"
+checksum = "cc4e190f5d26ca7051642629da2c52fc03bde85a03197c99408dcd291734c855"
 dependencies = [
  "equivalent",
  "hashbrown 0.17.1",
@@ -1775,7 +1893,7 @@ dependencies = [
  "indoc",
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -1913,9 +2031,9 @@ dependencies = [
 
 [[package]]
 name = "libredox"
-version = "0.1.21"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7955dfc218a8afb29dfeffd540e3a6e96baeb94fe7138228dd7cc6937fbbf96"
+checksum = "28d0a00925a9f930d679b6789b721e3a7f9ed110f41b86d2497caa780c3a070a"
 dependencies = [
  "libc",
 ]
@@ -2049,6 +2167,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
+name = "memoffset"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "miniz_oxide"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2112,6 +2239,7 @@ dependencies = [
  "cfg-if",
  "cfg_aliases",
  "libc",
+ "memoffset",
 ]
 
 [[package]]
@@ -2558,6 +2686,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
+name = "relative-path"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bca40a312222d8ba74837cb474edef44b37f561da5f773981007a10bbaa992b0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "reqwest"
 version = "0.12.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2613,6 +2750,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "rquickjs"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e04e4eedfb060b503b5f0a2644abb890b0b3620d3fb674f9455f230014964e4"
+dependencies = [
+ "rquickjs-core",
+]
+
+[[package]]
+name = "rquickjs-core"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16e4f499ac5b943d97ee6dbc44f23c2c10426f420f7d2f1793d6318911b6608c"
+dependencies = [
+ "async-lock",
+ "hashbrown 0.17.1",
+ "relative-path",
+ "rquickjs-sys",
+]
+
+[[package]]
+name = "rquickjs-sys"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a13ac243b86a74120814ef7e9e30ad5a2c1199b7b9963b1cf7c84e4cdc1cad99"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "rusqlite"
 version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2642,7 +2809,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2766,7 +2933,17 @@ checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
+]
+
+[[package]]
+name = "serde_ignored"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "115dffd5f3853e06e746965a20dcbae6ee747ae30b543d91b0e089668bb07798"
+dependencies = [
+ "serde",
+ "serde_core",
 ]
 
 [[package]]
@@ -2990,9 +3167,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "3.0.4"
+version = "3.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6275cddf4610d1775e6d1fe9469b2e77d0f39fd98fb7450901b821e0c53649f"
+checksum = "12df2e0110f65b775f769bb17ef989067a1d931b2eb822bd4346631eeada89f9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3099,7 +3276,7 @@ checksum = "bc04cd3e1236dd4a98afca4569f2deb3f120e5422a4023be2cb683f8486292af"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -3181,7 +3358,7 @@ checksum = "78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -3344,6 +3521,7 @@ checksum = "0a5318dd619ed73c52a9417ad19046724effc1287fb75cdcc4eca1d6ac1acbae"
 dependencies = [
  "crossterm",
  "ratatui",
+ "regex",
  "unicode-width 0.2.0",
 ]
 
@@ -3441,9 +3619,9 @@ checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
 name = "uuid"
-version = "1.26.0"
+version = "1.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5772d71c9be8a8a6ac2117d949c5b224c1b72241bb611d9a3012edcf8af7812"
+checksum = "2ef6dac1e96601b4fb3acccccff2139741fcb757cb9a36089bf5be91cfb285ce"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
@@ -3718,15 +3896,6 @@ dependencies = [
 
 [[package]]
 name = "windows-sys"
-version = "0.59.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e38bc4d79ed67fd075bcc251a1c39b32a1776bbe92e5bef1f0bf1f8c531853b"
-dependencies = [
- "windows-targets 0.52.6",
-]
-
-[[package]]
-name = "windows-sys"
 version = "0.60.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2f500e4d28234f72040990ec9d39e3a6b950f9f22d3dba18416c35882612bcb"
@@ -3945,7 +4114,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f3fd376f71958b862e7afb20cfe5a22830e1963462f3a17f49d82a6c1d1f42d"
 dependencies = [
  "bitflags 2.13.1",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4063,7 +4232,7 @@ checksum = "34df6fc39dbd26ddc9c10e6a2984476e13acce22e64e4487636ef494369225da"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]

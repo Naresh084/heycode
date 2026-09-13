@@ -362,7 +362,7 @@ fn custom_profile_and_unknown_content_are_preserved_byte_for_byte_where_untouche
     let migrated = std::fs::read_to_string(&path).unwrap();
     assert!(migrated.contains("# This comment and the custom composition are user-owned."));
     assert!(migrated.contains(
-        "plugins = [\"session\", \"prompt\", \"sandbox\", \"subprocess-local\", \"shell-local\", \"filesystem-local\", \"native-tools\", \"native-openrouter\", \"web\", \"web-portable\", \"tools\", \"http\", \"models\", \"llm\", \"catalog-openrouter\"]"
+        "plugins = [\"session\", \"prompt\", \"workspace-scope\", \"sandbox\", \"subprocess-local\", \"shell-local\", \"filesystem-local\", \"native-tools\", \"native-openrouter\", \"web\", \"web-portable\", \"tools\", \"http\", \"models\", \"llm\", \"catalog-openrouter\"]"
     ));
     assert!(migrated.contains("[future_extension]\npreserve_me = true"));
     let parsed = Config::from_file(&path).unwrap();
@@ -371,6 +371,7 @@ fn custom_profile_and_unknown_content_are_preserved_byte_for_byte_where_untouche
         [
             "session",
             "prompt",
+            "workspace-scope",
             "sandbox",
             "subprocess-local",
             "shell-local",
@@ -422,6 +423,7 @@ model = "custom/model"
         [
             "session",
             "prompt",
+            "workspace-scope",
             "sandbox",
             "subprocess-local",
             "shell-local",
@@ -480,6 +482,7 @@ plugins = ["session", "prompt", "tools", "llm", "tui"]
         [
             "session",
             "prompt",
+            "workspace-scope",
             "sandbox",
             "subprocess-local",
             "shell-local",
@@ -529,6 +532,7 @@ plugins = ["session", "prompt", "tools", "llm", "ui", "tui"]
         [
             "session",
             "prompt",
+            "workspace-scope",
             "sandbox",
             "subprocess-local",
             "shell-local",
@@ -578,6 +582,7 @@ plugins = ["session", "prompt", "tools", "llm", "ui", "runtimes", "tui"]
         [
             "session",
             "prompt",
+            "workspace-scope",
             "sandbox",
             "subprocess-local",
             "shell-local",
@@ -634,6 +639,7 @@ plugins = ["session", "prompt", "tools", "llm"]
         [
             "session",
             "prompt",
+            "workspace-scope",
             "sandbox",
             "subprocess-local",
             "shell-local",
@@ -678,6 +684,8 @@ plugins = ["tools", "mcp"]
     assert_eq!(
         Config::from_file(&path).unwrap().profile.plugins,
         [
+            "session",
+            "workspace-scope",
             "sandbox",
             "subprocess-local",
             "shell-local",
@@ -717,6 +725,8 @@ plugins = ["sandbox", "subprocess-local", "shell-local", "tools"]
         [
             "sandbox",
             "subprocess-local",
+            "session",
+            "workspace-scope",
             "shell-local",
             "filesystem-local",
             "native-tools",
@@ -752,6 +762,8 @@ plugins = ["sandbox", "subprocess-local", "shell-local", "filesystem-local", "to
         [
             "sandbox",
             "subprocess-local",
+            "session",
+            "workspace-scope",
             "shell-local",
             "filesystem-local",
             "native-tools",

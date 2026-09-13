@@ -1289,7 +1289,22 @@ fn run(args: Vec<String>) -> Result<i32, anyhow::Error> {
         return Ok(code);
     }
     let cli = parse_args(&args).map_err(anyhow::Error::msg)?;
-    if args.is_empty() && std::io::stdin().is_terminal() {
+    if std::io::stdin().is_terminal()
+        && ![
+            cli.mode_run,
+            cli.mode_setup,
+            cli.mode_acp,
+            cli.mode_app_server,
+            cli.mode_doctor,
+            cli.mode_mcp,
+            cli.mode_plugin,
+            cli.mode_config,
+            cli.mode_release,
+            cli.fake,
+        ]
+        .into_iter()
+        .any(|enabled| enabled)
+    {
         heycode_cli::update::start_automatic();
     }
     #[cfg(any(target_os = "macos", target_os = "linux"))]

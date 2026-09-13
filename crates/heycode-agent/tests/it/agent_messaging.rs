@@ -273,7 +273,48 @@ async fn native_message_round_trip(nested: bool) {
         0
     );
     let sender_events = sender_agent.session().lock().unwrap().events().to_vec();
-    assert!(sender_events.iter().any(|event| matches!(&event.kind, SessionEventKind::ToolResult { call_id, is_error:true, .. } if call_id.as_str() == "foreign-control")), "peer messaging must not grant interrupt authority");
+    let control_result = sender_events
+        .iter()
+        .find_map(|event| match &event.kind {
+            SessionEventKind::ToolResult {
+                call_id, content, ..
+            } if call_id.as_str() == "foreign-control" => Some(content),
+            _ => None,
+        })
+        .expect("the native sender must execute the foreign-control probe");
+    let control: serde_json::Value = serde_json::from_str(control_result)
+        .expect("canonical agent control returns structured metadata");
+    assert_eq!(
+        control["agent_id"],
+        recipient.id.as_str(),
+        "{control_result}"
+    );
+    assert_eq!(
+        control["requested"], false,
+        "peer messaging must not grant interrupt authority: {control_result}"
+    );
+    assert_eq!(
+        control["status"], "not_found",
+        "foreign ownership remains indistinguishable from absence"
+    );
+    let sender_authority = registry
+        .authority_for_child(&sender_owner, &sender.id)
+        .unwrap();
+    assert!(
+        registry
+            .child_for(&sender_authority, &recipient.id)
+            .is_none()
+    );
+    assert!(!recipient_agent.token().is_cancelled());
+    assert_eq!(
+        registry
+            .task_snapshots_for(&authority)
+            .iter()
+            .find(|row| row.id == recipient.id.as_str())
+            .unwrap()
+            .state,
+        heycode_agent::TaskState::Idle
+    );
     assert_eq!(recipient_agent.session().lock().unwrap().events().iter().filter(|event| matches!(&event.kind, SessionEventKind::UserMessage { text } if text.contains(REQUEST))).count(), 1);
     assert_eq!(sender_events.iter().filter(|event| matches!(&event.kind, SessionEventKind::UserMessage { text } if text.contains(ANSWER))).count(), 1);
     let recorded = requests.lock().unwrap();

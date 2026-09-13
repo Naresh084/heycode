@@ -32,6 +32,7 @@ PARENT_NOTE = "PARENT_NOTE_ATLAS: verify the queued message at the next safe ste
 
 def run(binary: Path, output: Path, columns: int, rows: int, background: bool, theme: str, color: bool):
     output.mkdir(parents=True, exist_ok=True)
+    (output / "harness.py").write_text(Path(__file__).read_text())
     started = datetime.now(timezone.utc).isoformat()
     requests = []
     release = {name: threading.Event() for name in AGENTS}
@@ -194,7 +195,7 @@ def run(binary: Path, output: Path, columns: int, rows: int, background: bool, t
 
             def quiet(frame):
                 assert not re.search(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", frame), f"Raw operational identity:\n{frame}"
-                for forbidden in ["question_id", "instruction", "after_revision", "budget", 'Agent "', "[job "]:
+                for forbidden in ["question_id", "agent_id", "send_message()", "instruction", "after_revision", "budget", 'Agent "', "[job "]:
                     assert forbidden not in frame, f"Operational metadata {forbidden!r}:\n{frame}"
 
             try:
@@ -252,6 +253,10 @@ def run(binary: Path, output: Path, columns: int, rows: int, background: bool, t
                 for name in AGENTS[1:]:
                     release[name].set()
                 wait(lambda _: summary_started.is_set(), "parent receives five automatic settlements", 60)
+                # Transport write and UI application are asynchronous. Observe
+                # the held response in the terminal before checking its phase.
+                has("All five agents have settled.", 30)
+                wait(lambda frame: "Responding" in frame or "responding" in frame, "streamed parent response remains active", 30)
                 frame = capture("parent-synthesis-after-settlement")
                 assert "Responding" in frame or "responding" in frame, frame
                 summary_release.set()
@@ -279,12 +284,19 @@ def run(binary: Path, output: Path, columns: int, rows: int, background: bool, t
                 for index in range(5):
                     send(b"\r", f"inspect retained agent {index + 1}")
                     frame = read(0.4)
-                    # Provider body text is deliberately redacted. Inspect the
-                    # safe classified diagnostic correlated with this agent.
-                    if "Equinox" in frame and "provider rejected the request" in frame:
+                    # Inspect only the selected agent panel: another agent's
+                    # receipt may remain visible behind it in the transcript.
+                    # Provider bodies are deliberately redacted; safe status
+                    # and category are the real diagnostic contract.
+                    def failure_panel(value):
+                        lines = value.splitlines()
+                        start = next((i for i, line in enumerate(lines) if re.match(r"\s*@Equinox \(failed\)", line)), None)
+                        return "\n".join(lines[start:]) if start is not None else ""
+                    panel = failure_panel(frame)
+                    if panel and "provider rejected the request" in re.sub(r"\s+", " ", panel):
                         found_failure = True
                         settled_detail = capture("provider-failure-detail")
-                        assert read(1.2) == settled_detail, "Settled failure detail or duration changed without a new event"
+                        assert failure_panel(read(1.2)) == failure_panel(settled_detail), "Settled failure detail or duration changed without a new event"
                         break
                     send(b"\x1b", "return to same agent-history origin")
                     read(0.2)

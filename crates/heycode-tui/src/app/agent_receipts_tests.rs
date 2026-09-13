@@ -642,3 +642,93 @@ fn all_four_required_answers_fit_the_transcript_height_contract_at_narrow_widths
         );
     }
 }
+
+#[test]
+fn queued_send_message_transport_receipts_are_quiet_but_exact_raw_history_survives() {
+    for name in ["send_message", "mcp__heycode__send_message"] {
+        let mut state = AppState::new("native", "/workspace".into());
+        state.items.push(Item::Tool {
+            call_id: None, name: name.into(), args: serde_json::json!({"to":"Atlas","message":"Inspect parser"}),
+            result: Some((true, serde_json::json!({"agent_id":"private-agent","name":"Atlas","message_id":"private-message","status":"queued"}))),
+            untrusted_content: None, view: ToolViewState { approval: Some("approved".into()), group_details: true, ..Default::default() },
+        });
+        assert!(transcript(&state).is_empty());
+        assert!(
+            !super::accessibility::ScreenReaderSnapshot::from_state(&state)
+                .into_text()
+                .contains("private-agent")
+        );
+        if let Some(Item::Tool { view, .. }) = state.items.first_mut() {
+            view.expanded = true;
+        }
+        let raw = transcript(&state);
+        assert!(
+            raw.contains("private-agent")
+                && raw.contains("private-message")
+                && raw.contains("Inspect parser"),
+            "{raw}"
+        );
+    }
+}
+
+#[test]
+fn send_message_results_failures_pending_approvals_and_incoming_messages_remain_visible()
+-> anyhow::Result<()> {
+    let queued = serde_json::json!({"agent_id":"private-agent","name":"Atlas","message_id":"private-message","status":"queued"});
+    for (result, approval) in [
+        (None, None),
+        (
+            Some((
+                false,
+                serde_json::json!({"message":"recipient unavailable"}),
+            )),
+            None,
+        ),
+        (
+            Some((true, serde_json::json!("Actual synchronous finding"))),
+            None,
+        ),
+        (
+            Some((
+                true,
+                serde_json::json!({"agent_id":"private-agent","name":"Atlas","message_id":"private-message","status":"queued","result":"Actual synchronous finding"}),
+            )),
+            None,
+        ),
+        (Some((true, queued.clone())), Some("awaiting approval")),
+        (Some((true, queued)), Some("rejected")),
+    ] {
+        let item = Item::Tool {
+            call_id: None,
+            name: "send_message".into(),
+            args: serde_json::json!({"to":"Atlas"}),
+            result,
+            untrusted_content: None,
+            view: ToolViewState {
+                approval: approval.map(str::to_owned),
+                ..Default::default()
+            },
+        };
+        assert!(!crate::transcript::quiet_orchestration(&item));
+    }
+    let message = InboxMessage::with_source(
+        InboxMessageId::new("incoming-one")?,
+        InboxDelivery::Steer,
+        "[Agent message from \"Atlas\" (agent-atlas)]\nThe parser needs an explicit delimiter.",
+        InboxSource::Agent {
+            agent_id: "agent-atlas".into(),
+            agent_name: "Atlas".into(),
+            recipient_id: "main".into(),
+            run_id: "run-one".into(),
+            completion_id: None,
+            outcome: None,
+        },
+    )?;
+    let mut state = AppState::new("native", "/workspace".into());
+    state
+        .items
+        .push(super::inbox_transcript::agent_message_item(message));
+    assert!(!crate::transcript::quiet_orchestration(&state.items[0]));
+    assert!(transcript(&state).contains("The parser needs an explicit delimiter."));
+    Ok(())
+}

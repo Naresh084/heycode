@@ -648,7 +648,12 @@ pub(crate) fn draw_background(frame: &mut Frame<'_>, state: &mut AppState, area:
         }
     }
     if entries.is_empty() {
-        entries.push(("No tasks currently running".into(), None));
+        let empty = if state.task_console.category == TaskCategory::Agents {
+            "No agents yet."
+        } else {
+            "No tasks currently running"
+        };
+        entries.push((empty.into(), None));
     }
     let height = usize::from(body.height.saturating_sub(3));
     let focus = entries

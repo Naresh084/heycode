@@ -456,7 +456,7 @@ impl SubagentRunner {
             .await?;
 
         let text = report.text.clone();
-        let initial_error = native_report_result(&child, report).err();
+        let initial_error = native_report_result(report).err();
         self.bus.emit(UiEvent::Status {
             verb: "Forging…".to_owned(),
         });
@@ -657,7 +657,7 @@ impl SubagentHandle for NativeSubagentHandle {
             )
             .await
             .map_err(|error| classify(&error))?;
-        native_report_result(&self.agent, report)
+        native_report_result(report)
     }
 
     fn deliver_mail(&self, id: &str, text: &str) -> Result<bool, SubagentError> {
@@ -689,7 +689,7 @@ impl SubagentHandle for NativeSubagentHandle {
                     ));
                 }
                 Ok(report) => {
-                    native_report_result(&self.agent, report)?;
+                    native_report_result(report)?;
                 }
                 Err(error) if error.downcast_ref::<crate::FollowUpError>().is_some() => {
                     return Ok(());
@@ -748,9 +748,9 @@ impl SubagentHandle for NativeSubagentHandle {
                         "subagent turn cancelled",
                     ));
                 }
-                Ok(report) if &next == id => return native_report_result(&self.agent, report),
+                Ok(report) if &next == id => return native_report_result(report),
                 Ok(report) => {
-                    native_report_result(&self.agent, report)?;
+                    native_report_result(report)?;
                 }
                 Err(error) if error.downcast_ref::<crate::FollowUpError>().is_some() => {}
                 Err(error) => return Err(classify(&error)),
@@ -785,7 +785,7 @@ impl SubagentHandle for NativeSubagentHandle {
 }
 
 /// A bounded/paused provider result is retained evidence, not a successful run.
-fn native_report_result(agent: &Agent, report: crate::TurnReport) -> Result<String, SubagentError> {
+fn native_report_result(report: crate::TurnReport) -> Result<String, SubagentError> {
     if report.reason == "stop" {
         return Ok(report.text);
     }
@@ -802,9 +802,8 @@ fn native_report_result(agent: &Agent, report: crate::TurnReport) -> Result<Stri
             report.reason
         )
     };
-    if code == SubagentErrorCode::Failed
-        && let Some(record) = &agent.task_record
-    {
+    let mut error = SubagentError::new(code, message.clone());
+    if code == SubagentErrorCode::Failed {
         let mut partial = report.text;
         if partial.len() > 32 * 1024 {
             let mut end = 32 * 1024;
@@ -813,21 +812,15 @@ fn native_report_result(agent: &Agent, report: crate::TurnReport) -> Result<Stri
             }
             partial.truncate(end);
         }
-        record
-            .update(|row| {
-                // The retained handle and its invocation owner still have to
-                // settle; publish the diagnosis without ending their lease.
-                row.terminal_diagnostic = Some(crate::TaskDiagnostic {
-                    message: message.clone(),
-                    code: Some(report.reason.to_owned()),
-                    stage: Some("native_turn".into()),
-                    partial_result: (!partial.is_empty()).then_some(partial),
-                    ..crate::TaskDiagnostic::default()
-                });
-            })
-            .map_err(|error| SubagentError::new(SubagentErrorCode::Failed, error.to_string()))?;
+        error = error.with_diagnostic(crate::TaskDiagnostic {
+            message,
+            code: Some(report.reason.to_owned()),
+            stage: Some("native_turn".into()),
+            partial_result: (!partial.is_empty()).then_some(partial),
+            ..crate::TaskDiagnostic::default()
+        });
     }
-    Err(SubagentError::new(code, message))
+    Err(error)
 }
 
 fn classify(error: &anyhow::Error) -> SubagentError {

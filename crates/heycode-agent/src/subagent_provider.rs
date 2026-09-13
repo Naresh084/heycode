@@ -704,11 +704,23 @@ impl SubagentErrorCode {
     }
 }
 
-/// One bounded, body-free delegation failure.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// A bounded public failure with optional owner-only diagnostic evidence.
+#[derive(Clone, PartialEq, Eq)]
 pub struct SubagentError {
     code: SubagentErrorCode,
     message: String,
+    diagnostic: Option<Box<crate::TaskDiagnostic>>,
+}
+
+impl std::fmt::Debug for SubagentError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("SubagentError")
+            .field("code", &self.code)
+            .field("message", &self.message)
+            .field("has_diagnostic", &self.diagnostic.is_some())
+            .finish()
+    }
 }
 
 impl SubagentError {
@@ -716,9 +728,26 @@ impl SubagentError {
     #[must_use]
     pub fn new(code: SubagentErrorCode, message: impl Into<String>) -> Self {
         let mut message = message.into();
-        message.truncate(512);
+        let mut boundary = message.len().min(512);
+        while !message.is_char_boundary(boundary) {
+            boundary -= 1;
+        }
+        message.truncate(boundary);
         let message = message.replace(['\n', '\r'], " ");
-        Self { code, message }
+        Self {
+            code,
+            message,
+            diagnostic: None,
+        }
+    }
+
+    pub(crate) fn with_diagnostic(mut self, diagnostic: crate::TaskDiagnostic) -> Self {
+        self.diagnostic = Some(Box::new(diagnostic));
+        self
+    }
+
+    pub(crate) fn diagnostic(&self) -> Option<crate::TaskDiagnostic> {
+        self.diagnostic.as_deref().cloned()
     }
 
     /// Stable class.
@@ -1694,9 +1723,18 @@ impl SubagentRegistry {
                 error.message(),
             ),
         };
-        let diagnostic = (state == crate::TaskState::Failed)
-            .then(|| record.read().terminal_diagnostic)
-            .flatten();
+        let diagnostic = result
+            .as_ref()
+            .err()
+            .filter(|_| state == crate::TaskState::Failed)
+            .map(|error| {
+                error.diagnostic().unwrap_or_else(|| crate::TaskDiagnostic {
+                    message: error.message().to_owned(),
+                    code: Some(error.code().as_str().to_owned()),
+                    stage: Some("start".into()),
+                    ..crate::TaskDiagnostic::default()
+                })
+            });
         record
             .finish_with_diagnostic(state, output, diagnostic)
             .map_err(task_io_error)?;
@@ -2173,18 +2211,18 @@ impl AliasedHandle {
             }
             Err(_) => crate::TaskState::Failed,
         };
-        let retained = self.record.read().terminal_diagnostic;
         let diagnostic = result
             .as_ref()
             .err()
             .filter(|_| state == crate::TaskState::Failed)
-            .map(|error| crate::TaskDiagnostic {
-                message: error.message().to_owned(),
-                code: Some(error.code().as_str().to_owned()),
-                stage: Some(stage.to_owned()),
-                ..crate::TaskDiagnostic::default()
+            .map(|error| {
+                error.diagnostic().unwrap_or_else(|| crate::TaskDiagnostic {
+                    message: error.message().to_owned(),
+                    code: Some(error.code().as_str().to_owned()),
+                    stage: Some(stage.to_owned()),
+                    ..crate::TaskDiagnostic::default()
+                })
             });
-        let diagnostic = retained.or(diagnostic);
         self.record
             .finish_with_diagnostic(
                 state,
@@ -3617,6 +3655,24 @@ impl SubagentRegistry {
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[test]
+    fn retained_error_diagnostic_is_available_only_to_its_owner() {
+        let error = SubagentError::new(SubagentErrorCode::Failed, "native run reached its limit")
+            .with_diagnostic(crate::TaskDiagnostic {
+                code: Some("max_tokens".into()),
+                partial_result: Some("PRIVATE_PARTIAL_RESPONSE".into()),
+                ..crate::TaskDiagnostic::default()
+            });
+        assert!(!format!("{error:?}").contains("PRIVATE_PARTIAL_RESPONSE"));
+        assert!(!error.to_string().contains("PRIVATE_PARTIAL_RESPONSE"));
+        let diagnostic = error.clone().diagnostic().unwrap();
+        assert_eq!(diagnostic.code.as_deref(), Some("max_tokens"));
+        assert_eq!(
+            diagnostic.partial_result.as_deref(),
+            Some("PRIVATE_PARTIAL_RESPONSE")
+        );
+    }
 
     fn request(seed: SubagentSeed, continuation: SubagentContinuation) -> SubagentRequest {
         SubagentRequest::new("review", "check the diff", seed, continuation, 0).unwrap()

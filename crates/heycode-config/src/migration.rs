@@ -621,6 +621,12 @@ impl ConfigMigrationPlan {
                 required_by: "shell-local".to_owned(),
             });
         }
+        if add_required_profile_plugin(&mut document, "workspace-scope", "session") {
+            changes.push(ConfigMigrationChange::AddRequiredProfilePlugin {
+                plugin: "session".to_owned(),
+                required_by: "workspace-scope".to_owned(),
+            });
+        }
         if add_required_profile_plugin(&mut document, "shell-local", "subprocess-local") {
             changes.push(ConfigMigrationChange::AddRequiredProfilePlugin {
                 plugin: "subprocess-local".to_owned(),

@@ -10,7 +10,7 @@ Artifacts are standalone binaries for macOS ARM64, macOS x86-64, and Linux x86-6
 
 ## Automatic updates
 
-The installer creates `.heycode-install` beside the binary. An interactive launch without extra arguments checks that marker and starts a background update check that runs at most once an hour while the process stays open. There is no background daemon when HeyCode is closed. A new stable release will be picked up on the next eligible background check; pushing an ordinary source commit does not update users.
+The installer creates `.heycode-install` beside the binary. An interactive launch checks that marker and starts a background update check that runs at most once an hour while the process stays open. There is no background daemon when HeyCode is closed. A new stable release will be picked up on the next eligible background check; pushing an ordinary source commit does not update users.
 
 The updater uses the fixed `Naresh084/heycode` GitHub HTTPS API and selects the exact asset for the running platform. It rejects prereleases, downgrades, missing digests, oversized downloads, and unexpected download origins. It verifies GitHub's asset SHA-256 digest before writing. This authenticates the download through GitHub HTTPS; it is not an independent Sigstore verification. Build attestations are separately inspectable with GitHub CLI:
 

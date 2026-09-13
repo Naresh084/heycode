@@ -3099,3 +3099,13 @@ async fn native_token_limit_retains_partial_output_without_claiming_success() {
     assert!(registry.retry_available_for(&authority, &id));
     ctx.shutdown();
 }
+
+#[test]
+fn subagent_error_bounds_multibyte_messages_without_panicking() {
+    let error = heycode_agent::SubagentError::new(
+        heycode_agent::SubagentErrorCode::Failed,
+        "猫".repeat(300),
+    );
+    assert!(error.message().len() <= 512);
+    assert!(error.message().chars().all(|character| character == '猫'));
+}

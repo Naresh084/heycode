@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import threading
 import time
 import pyte
 from PIL import Image
@@ -63,7 +64,21 @@ def main():
                 time.sleep(0.1)
             animation[0].save(args.output / 'terminal-mascot.gif', save_all=True,
                               append_images=animation[1:], duration=100, loop=0, optimize=True)
-            tmux('send-keys', '-t', 'demo', '-l', 'Hello! Read README.md and explain this tiny project in two sentences. Do not change any files.')
+            recording_done = threading.Event()
+            recording_paths = []
+            def record_message():
+                for index in range(150):
+                    if recording_done.is_set(): break
+                    name = f'message-{index:03d}'
+                    capture(name)
+                    recording_paths.append(args.output / f'{name}.png')
+                    recording_done.wait(0.4)
+            recording = threading.Thread(target=record_message)
+            recording.start()
+            prompt = 'Hello! Read README.md and explain this tiny project in two sentences. Do not change any files.'
+            for offset in range(0, len(prompt), 6):
+                tmux('send-keys', '-t', 'demo', '-l', prompt[offset:offset + 6])
+                time.sleep(0.12)
             tmux('send-keys', '-t', 'demo', 'Enter')
             time.sleep(15 if args.live_home else 3)
             conversation = capture('terminal-approval')
@@ -71,6 +86,13 @@ def main():
                 tmux('send-keys', '-t', 'demo', 'Enter')
                 time.sleep(12)
             capture('terminal-conversation')
+            time.sleep(1)
+            recording_done.set()
+            recording.join()
+            message_frames = [Image.open(path).copy() for path in recording_paths]
+            if message_frames:
+                message_frames[0].save(args.output / 'terminal-conversation.gif', save_all=True,
+                                      append_images=message_frames[1:], duration=200, loop=0, optimize=True)
             tmux('send-keys', '-t', 'demo', '-l', '/provider')
             tmux('send-keys', '-t', 'demo', 'Enter')
             time.sleep(2)
@@ -78,6 +100,7 @@ def main():
             (args.output / 'capture.json').write_text(json.dumps({
                 'binary_sha256': hashlib.sha256(binary.read_bytes()).hexdigest(),
                 'viewport': [104, 28], 'capture': 'tmux capture-pane ANSI rendered with pyte',
+                'message_recording_playback': 'approximately 2x speed; actual terminal frames',
                 'provider': 'configured live provider' if args.live_home else 'deterministic fake provider',
                 'prompt': 'Hello! Read README.md and explain this tiny project in two sentences. Do not change any files.',
             }, indent=2) + '\n')

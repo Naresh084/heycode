@@ -147,6 +147,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends bubblewrap
+          # Ubuntu's hosted AppArmor policy otherwise blocks the user namespaces
+          # needed to exercise bubblewrap. This affects only this disposable runner.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           test "$(command -v bwrap)" = /usr/bin/bwrap
 
       - name: Record the toolchain actually in use

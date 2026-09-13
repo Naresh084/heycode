@@ -72,7 +72,10 @@ fn frame(state: &mut AppState, width: u16, height: u16) -> Vec<String> {
 
 #[test]
 fn active_conversation_keeps_banner_first_and_actionable_footer() {
-    let lines = frame(&mut state(), 120, 35);
+    let mut state = state();
+    state.context_tokens = Some(8_000);
+    state.context_window = Some(100_000);
+    let lines = frame(&mut state, 120, 35);
     let composer = lines
         .iter()
         .position(|line| line.trim_start().starts_with('❯'))

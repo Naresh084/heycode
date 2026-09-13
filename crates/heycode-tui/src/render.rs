@@ -6649,6 +6649,7 @@ fn orchestration_title<'a>(name: &'a str, args: &serde_json::Value) -> Option<&'
     Some(match canonical_tool_name(name) {
         "agent_completion" => "Agent result",
         "agent_message" => "Agent message",
+        "send_message" => "Message agent",
         "list_agents" => "Inspect agents",
         "list_jobs" => "Inspect jobs",
         "ask_user_question_async" => "Optional question",

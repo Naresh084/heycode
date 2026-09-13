@@ -819,6 +819,22 @@ pub(crate) fn quiet_orchestration(item: &Item) -> bool {
     }
     match name.strip_prefix("mcp__heycode__").unwrap_or(name) {
         "list_agents" | "list_jobs" => true,
+        "send_message" => value.as_object().is_some_and(|receipt| {
+            // This exact transport receipt contains no recipient response.
+            // Legacy synchronous results and additional substantive fields
+            // remain visible even when they also report a queued status.
+            receipt.len() == 4
+                && receipt.get("status").and_then(serde_json::Value::as_str) == Some("queued")
+                && ["agent_id", "name"].iter().all(|field| {
+                    receipt
+                        .get(*field)
+                        .and_then(serde_json::Value::as_str)
+                        .is_some_and(|value| !value.is_empty())
+                })
+                && receipt
+                    .get("message_id")
+                    .is_some_and(|id| id.is_null() || id.as_str().is_some_and(|id| !id.is_empty()))
+        }),
         "agent_control" => matches!(
             args.get("action").and_then(serde_json::Value::as_str),
             Some("list" | "wait")

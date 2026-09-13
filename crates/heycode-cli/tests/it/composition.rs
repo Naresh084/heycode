@@ -2904,7 +2904,7 @@ fn default_world_reports_exact_live_inventory() {
                 "agents",
                 "immediate",
                 "panel-commands",
-                "/agents".to_owned()
+                "/agents [view]".to_owned()
             ),
             ("hooks", "immediate", "panel-commands", "/hooks".to_owned()),
             (

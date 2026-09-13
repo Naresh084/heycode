@@ -11,9 +11,9 @@
 
 Ask questions about your project, plan a change, edit files, and run checks—all in one conversation. Bring your own provider, keep your sessions on your computer, and pick up where you left off.
 
-![HeyCode reading a demo project and responding through a live provider](docs/images/terminal-conversation.png)
+![Typing a request, approving a read, and receiving a live response in HeyCode](docs/images/terminal-conversation.gif)
 
-*An actual tmux capture: a live provider reads the demo README after approval and summarizes it.*
+*Recorded from the actual TUI with a live provider, played at approximately 2× speed. The file read requires approval.*
 
 ## Install
 

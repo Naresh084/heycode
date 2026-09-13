@@ -3,7 +3,7 @@
 
 This page is generated from current Rust contracts. Regenerate with `python3 scripts/verify_docs.py --write`; verify with `python3 scripts/verify_docs.py`.
 
-Source digest: `461ae965420f1106552141653e1da1bfdf8d931bc06e8061b1ff4af874688446`
+Source digest: `dacf342103b12e6b8afb10ff4e4cb6ee111f8f14098025b5636b9270c0e2a2b5`
 
 Sources:
 
@@ -134,7 +134,7 @@ The table follows the default real-composition catalog order. Command availabili
 | `/rewind [turn] [files]` | Restore a durable conversation checkpoint, optionally native file edits | `queued` | `tui` |
 | `/voice [action]` | Dictate locally into your draft without submitting | `immediate` | `tui` |
 | `/mcp [action] [server]` | Open or manage MCP servers | `immediate` | `panel-commands` |
-| `/agents` | Browse agent conversations; providers opens the provider/preset catalog | `immediate` | `panel-commands` |
+| `/agents [view]` | Browse agent conversations; providers opens the provider/preset catalog | `immediate` | `panel-commands` |
 | `/hooks` | Open the lifecycle-hooks panel | `immediate` | `panel-commands` |
 | `/workflows` | Open workflow phases and agents | `immediate` | `panel-commands` |
 | `/list-agents` | List this session and its admitted agent conversations | `immediate` | `panel-commands` |
