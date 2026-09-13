@@ -19,6 +19,59 @@ use heycode_session::{
 use crate::agent::Agent;
 use crate::ui::UiEvent;
 
+/// Admission bounds across both pending queues. Existing durable history is
+/// never truncated; an over-limit recovered inbox can still be drained/recalled.
+pub const MAX_PENDING_INBOX_MESSAGES: usize = 256;
+/// Maximum total UTF-8 text bytes awaiting admission in one recipient.
+pub const MAX_PENDING_INBOX_BYTES: usize = 4 * 1024 * 1024;
+
+/// A rejected admission leaves existing input and the caller's text untouched.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InboxAdmissionError {
+    /// The recipient already has the maximum pending occurrence count.
+    PendingCount,
+    /// The added text would exceed the pending text budget.
+    PendingBytes,
+}
+impl InboxAdmissionError {
+    /// Stable machine-readable error code.
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::PendingCount => "inbox.pending_count_limit",
+            Self::PendingBytes => "inbox.pending_bytes_limit",
+        }
+    }
+}
+impl std::fmt::Display for InboxAdmissionError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let limit = match self {
+            Self::PendingCount => format!("{MAX_PENDING_INBOX_MESSAGES} pending messages"),
+            Self::PendingBytes => format!("{MAX_PENDING_INBOX_BYTES} pending text bytes"),
+        };
+        write!(
+            formatter,
+            "recipient inbox capacity reached ({limit}); consume or recall pending input before sending again; existing input is retained"
+        )
+    }
+}
+impl std::error::Error for InboxAdmissionError {}
+
+fn check_capacity(
+    session: &heycode_session::Session,
+    message: &InboxMessage,
+) -> Result<(), InboxAdmissionError> {
+    let inbox = session.inbox();
+    let pending = inbox.next_turn().iter().chain(inbox.next_step());
+    if pending.clone().count() >= MAX_PENDING_INBOX_MESSAGES {
+        return Err(InboxAdmissionError::PendingCount);
+    }
+    let bytes = pending.fold(0usize, |sum, item| sum.saturating_add(item.text().len()));
+    if bytes.saturating_add(message.text().len()) > MAX_PENDING_INBOX_BYTES {
+        return Err(InboxAdmissionError::PendingBytes);
+    }
+    Ok(())
+}
+
 /// What the caller must do after a durable inbox submission.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InboxWake {
@@ -110,6 +163,7 @@ impl Agent {
             (messages, pending_from(&session))
         };
         self.emit_inbox(pending, InboxWake::Queued);
+        self.reconcile_completion_capacity();
         Ok(messages)
     }
 
@@ -148,6 +202,7 @@ impl Agent {
             }
             let message =
                 InboxMessage::with_source(id, InboxDelivery::FollowUp, text, InboxSource::Team)?;
+            check_capacity(&session, &message)?;
             let start = u32::try_from(session.inbox().next_turn().len())?;
             session.append(SessionEventKind::AgentInboxSplice {
                 target: InboxTarget::NextTurn,
@@ -242,6 +297,7 @@ impl Agent {
             pending_from(&session)
         };
         self.emit_inbox(pending, InboxWake::Queued);
+        self.reconcile_completion_capacity();
         Ok(true)
     }
 
@@ -255,7 +311,21 @@ impl Agent {
     /// Durable append failure.
     pub(crate) fn drain_next_step(&self) -> anyhow::Result<Vec<String>> {
         let mut admitted = Vec::new();
-        loop {
+        let batch = {
+            let session = self.session().lock().unwrap_or_else(|e| e.into_inner());
+            let mut bytes = 0usize;
+            session
+                .inbox()
+                .next_step()
+                .iter()
+                .take(MAX_PENDING_INBOX_MESSAGES)
+                .take_while(|message| {
+                    bytes = bytes.saturating_add(message.text().len());
+                    bytes <= MAX_PENDING_INBOX_BYTES
+                })
+                .count()
+        };
+        for _ in 0..batch {
             let claimed = {
                 let mut session = self.session().lock().unwrap_or_else(|e| e.into_inner());
                 if session.inbox().next_step().is_empty() {
@@ -272,6 +342,7 @@ impl Agent {
         if !admitted.is_empty() {
             let pending = self.pending_inbox();
             self.emit_inbox(pending, InboxWake::Queued);
+            self.reconcile_completion_capacity();
         }
         Ok(admitted)
     }
@@ -305,6 +376,7 @@ impl Agent {
         self.publish_admission(&text);
         let pending = self.pending_inbox();
         self.emit_inbox(pending, InboxWake::Queued);
+        self.reconcile_completion_capacity();
         Ok(Some(text))
     }
 
@@ -337,6 +409,7 @@ impl Agent {
         let text = message.text().to_owned();
         self.publish_admission(&text);
         self.emit_inbox(self.pending_inbox(), InboxWake::Queued);
+        self.reconcile_completion_capacity();
         Ok(Some(text))
     }
 
@@ -410,6 +483,7 @@ pub(crate) fn enqueue_owned_inbox(
     let target = delivery.target();
     let pending = {
         let mut session = session.lock().unwrap_or_else(|e| e.into_inner());
+        check_capacity(&session, &message)?;
         let start = u32::try_from(queue_len(&session, target))
             .map_err(|_| anyhow::anyhow!("inbox queue exceeds the supported range"))?;
         session.append(SessionEventKind::AgentInboxSplice {
@@ -457,6 +531,7 @@ pub(crate) fn enqueue_identified_inbox(
             "inbox occurrence identity conflicts with its durable payload"
         );
     } else {
+        check_capacity(&session, &message)?;
         let start = u32::try_from(queue_len(&session, delivery.target()))?;
         session.append(SessionEventKind::AgentInboxSplice {
             target: delivery.target(),
@@ -482,4 +557,91 @@ pub(crate) fn publish_owned_inbox(bus: &heycode_core::EventBus, submission: Inbo
         next_step: submission.pending.next_step,
         wake: submission.wake,
     });
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod capacity_tests {
+    use super::*;
+
+    #[test]
+    fn pending_count_limit_preserves_human_input_and_releases_after_cancel() {
+        let (mut context, _dir, agent) = crate::jobs::agent_completion_tests::fixture();
+        let mut ids = Vec::new();
+        for index in 0..MAX_PENDING_INBOX_MESSAGES {
+            ids.push(
+                agent
+                    .submit_inbox(
+                        if index % 2 == 0 {
+                            InboxDelivery::Inject
+                        } else {
+                            InboxDelivery::FollowUp
+                        },
+                        format!("human input {index}"),
+                    )
+                    .unwrap()
+                    .0,
+            );
+        }
+        let before = agent.session().lock().unwrap().events().len();
+        let error = agent
+            .submit_inbox(InboxDelivery::Steer, "retain caller draft")
+            .unwrap_err();
+        assert_eq!(
+            error.downcast_ref::<InboxAdmissionError>(),
+            Some(&InboxAdmissionError::PendingCount)
+        );
+        assert_eq!(agent.session().lock().unwrap().events().len(), before);
+        assert_eq!(
+            agent.pending_human_messages().len(),
+            MAX_PENDING_INBOX_MESSAGES
+        );
+        let original = agent
+            .pending_human_messages()
+            .into_iter()
+            .find(|message| message.id() == &ids[0])
+            .unwrap();
+        enqueue_identified_inbox(agent.session(), false, original).unwrap();
+        assert_eq!(
+            agent.pending_human_messages().len(),
+            MAX_PENDING_INBOX_MESSAGES
+        );
+        assert!(agent.cancel_inbox(&ids[0]).unwrap());
+        agent
+            .submit_inbox(InboxDelivery::Steer, "retain caller draft")
+            .unwrap();
+        let recalled = agent.recall_human_messages().unwrap();
+        assert_eq!(recalled.len(), MAX_PENDING_INBOX_MESSAGES);
+        assert_eq!(recalled.last().unwrap().text(), "retain caller draft");
+        assert!(agent.pending_inbox().is_empty());
+        context.shutdown();
+    }
+
+    #[test]
+    fn pending_byte_limit_releases_after_bounded_step_consumption() {
+        let (mut context, _dir, agent) = crate::jobs::agent_completion_tests::fixture();
+        let text = "x".repeat(1024 * 1024);
+        for _ in 0..MAX_PENDING_INBOX_BYTES / text.len() {
+            agent
+                .submit_inbox(InboxDelivery::Inject, text.clone())
+                .unwrap();
+        }
+        let before = agent.session().lock().unwrap().events().len();
+        let error = agent.submit_inbox(InboxDelivery::Inject, "x").unwrap_err();
+        assert_eq!(
+            error.downcast_ref::<InboxAdmissionError>(),
+            Some(&InboxAdmissionError::PendingBytes)
+        );
+        assert_eq!(agent.session().lock().unwrap().events().len(), before);
+        let consumed = agent.drain_next_step().unwrap();
+        assert_eq!(
+            consumed.iter().map(String::len).sum::<usize>(),
+            MAX_PENDING_INBOX_BYTES
+        );
+        agent
+            .submit_inbox(InboxDelivery::Inject, "new input")
+            .unwrap();
+        assert_eq!(agent.pending_inbox().next_step, 1);
+        context.shutdown();
+    }
 }

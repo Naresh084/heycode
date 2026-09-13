@@ -125,7 +125,10 @@ pub use fallback::{FallbackRegistration, RequestFallback};
 pub use goal::{
     GoalActivation, GoalError, GoalErrorCode, GoalLiveView, GoalPolicy, GoalService, goal_plugin,
 };
-pub use inbox::{FollowUpError, InboxPending, InboxWake};
+pub use inbox::{
+    FollowUpError, InboxAdmissionError, InboxPending, InboxWake, MAX_PENDING_INBOX_BYTES,
+    MAX_PENDING_INBOX_MESSAGES,
+};
 pub use jobs::{
     JobError, JobId, JobOutcome, JobRegistry, JobSettlement, JobSnapshot, JobState, WakeDecision,
 };

@@ -31,7 +31,7 @@ enum InboundFrame {
 enum OutboundFrame {
     Notification {
         operation: u64,
-        notification: AppServerNotification,
+        notification: Box<AppServerNotification>,
     },
     Response {
         operation: u64,
@@ -221,7 +221,7 @@ async fn run_operation(
                     Some(notification) => {
                         if outbound.send(OutboundFrame::Notification {
                             operation,
-                            notification,
+                            notification: Box::new(notification),
                         }).await.is_err() {
                             return (operation, Err(AppServerError::unavailable()));
                         }
@@ -236,7 +236,7 @@ async fn run_operation(
         if outbound
             .send(OutboundFrame::Notification {
                 operation,
-                notification,
+                notification: Box::new(notification),
             })
             .await
             .is_err()

@@ -174,6 +174,7 @@ pub struct Agent {
     pub(crate) inbox_wake_deferred: std::sync::atomic::AtomicUsize,
     inbox_wake_ready: tokio::sync::Notify,
     pub(crate) inbox_waker: std::sync::Mutex<Option<Arc<dyn Fn() + Send + Sync>>>,
+    pub(crate) completion_recovery_waker: std::sync::Mutex<Option<Arc<dyn Fn() + Send + Sync>>>,
     /// Present once the composition mounts background jobs. Turn settlement
     /// replenishes their wake budget, which is what bounds a job storm to one
     /// wake per turn.
@@ -372,6 +373,7 @@ impl Agent {
             inbox_wake_deferred: std::sync::atomic::AtomicUsize::new(0),
             inbox_wake_ready: tokio::sync::Notify::new(),
             inbox_waker: std::sync::Mutex::new(None),
+            completion_recovery_waker: std::sync::Mutex::new(None),
             jobs: std::sync::Mutex::new(None),
             execution: std::sync::Mutex::new(None),
             subagent_budget: None,
@@ -433,6 +435,33 @@ impl Agent {
         }
     }
 
+    /// A capacity release retries retained results, never their completed work.
+    pub(crate) fn reconcile_completion_capacity(&self) {
+        let Some(jobs) = self.jobs.lock().ok().and_then(|jobs| jobs.clone()) else {
+            return;
+        };
+        match self.recover_agent_completions(&jobs) {
+            Ok(0) => {}
+            Ok(_) => {
+                if self.next_wakeable_message().is_some() {
+                    let waker = self
+                        .completion_recovery_waker
+                        .lock()
+                        .ok()
+                        .and_then(|waker| waker.clone());
+                    if let Some(waker) = waker {
+                        waker();
+                    } else {
+                        self.request_inbox_wake();
+                    }
+                }
+            }
+            Err(error) => self.emit_ui(crate::UiEvent::Error {
+                message: format!("agent completion remains retained for delivery: {error}"),
+            }),
+        }
+    }
+
     /// Whether this recipient has an effect-owned automatic inbox driver.
     #[must_use]
     pub fn has_inbox_driver(&self) -> bool {
@@ -456,6 +485,10 @@ impl Agent {
             self.recover_agent_completions(&jobs)?;
             // Recovery may have scheduled one driver from a durable outbox.
             jobs.wait_until_idle(cancellation).await?;
+            anyhow::ensure!(
+                !self.has_pending_agent_completions(&jobs),
+                "completed agent results remain retained but not admitted; free recipient inbox capacity or resolve the reported delivery error"
+            );
         }
         anyhow::ensure!(
             self.next_wakeable_message().is_none(),

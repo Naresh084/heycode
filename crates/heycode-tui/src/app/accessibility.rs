@@ -160,6 +160,10 @@ impl ScreenReaderSnapshot {
                 }
             }
         } else if let Some(question) = state.pending_runtime_question.as_ref() {
+            builder.line(format!(
+                "Question from {}",
+                state.runtime_question_owner_label(question)
+            ));
             render_runtime_question(&mut builder, question);
         } else if let Some(ask) = state.pending_ask.as_ref() {
             builder.section("Permission requested");

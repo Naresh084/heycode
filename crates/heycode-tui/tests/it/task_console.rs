@@ -2719,3 +2719,115 @@ fn parent_footer_colors_follow_theme_and_context_pressure() {
         );
     }
 }
+
+#[tokio::test]
+async fn parent_settlement_keeps_child_question_until_its_actual_owner_cancels() {
+    use heycode_llm::{FinishReason, StreamChunk};
+    let root = tempfile::tempdir().unwrap();
+    let mut context = native_world(root.path(), Arc::new(heycode_llm::testing::FakeProvider::new(vec![vec![
+        StreamChunk::ToolCallDelta {
+            index: 0,
+            id: Some("child-required".into()),
+            name: Some("ask_user_question".into()),
+            arguments_delta: serde_json::json!({"questions":[{"id":"path","question":"Which child path?","mode":"free_text"}]}).to_string(),
+        },
+        StreamChunk::Finish(FinishReason::ToolCalls),
+    ]])));
+    let agent = context
+        .get::<heycode_agent::Agent>(heycode_agent::SERVICE_AGENT)
+        .unwrap();
+    let registry = context
+        .get::<heycode_agent::SubagentRegistry>(heycode_agent::SERVICE_SUBAGENTS)
+        .unwrap();
+    let broker = context
+        .get::<heycode_agent::InteractiveQuestion>(heycode_agent::SERVICE_QUESTIONS)
+        .unwrap();
+    let mut subscription = broker.take_subscription().unwrap();
+    let owner = subscription.owner_id();
+    let parent_session = agent.session();
+    let parent_id = parent_session.lock().unwrap().id().to_string();
+    let authority = registry.root_authority(heycode_agent::SubagentId::new(&parent_id).unwrap());
+    let (child_id, _) = registry
+        .start_background_task(
+            heycode_agent::SubagentRequest::with_authority(
+                "Atlas",
+                "Ask the required child question",
+                heycode_agent::SubagentSeed::Fresh,
+                heycode_agent::SubagentContinuation::Continuable,
+                authority.clone(),
+            )
+            .unwrap(),
+            heycode_session::InboxDelivery::Inject,
+        )
+        .unwrap();
+    let notification =
+        tokio::time::timeout(std::time::Duration::from_secs(10), subscription.recv())
+            .await
+            .unwrap()
+            .unwrap();
+    let child = registry.native_child_for(&authority, &child_id).unwrap();
+    let child_session_id = child.session().lock().unwrap().id().to_string();
+    assert_ne!(child_session_id, parent_id);
+    assert_eq!(
+        notification.owner_session_id.as_deref(),
+        Some(child_session_id.as_str())
+    );
+    let source = Arc::new(RegistryTaskSource::new(agent, None, Some(registry)).unwrap());
+    let mut state = AppState::new("native-fixture", root.path().into());
+    state.question_subscription = Some((broker.clone(), owner));
+    state.set_task_source(source.clone());
+    state.input.insert_str("preserved parent draft");
+    state.apply(&heycode_agent::UiEvent::TurnStarted { turn: 1 });
+    state.apply(&heycode_agent::UiEvent::RuntimeQuestionRequested {
+        owner_session_id: notification.owner_session_id,
+        request_id: format!("tui-agent-question-{owner}-{}", notification.id),
+        mode: notification.mode,
+        progress: notification.progress,
+        header: notification.header,
+        prompt: notification.prompt,
+        choices: notification
+            .choices
+            .iter()
+            .map(|choice| choice.label.clone())
+            .collect(),
+        choice_descriptions: notification
+            .choices
+            .iter()
+            .map(|choice| choice.description.clone())
+            .collect(),
+    });
+    state.pending_runtime_question.as_mut().unwrap().input = "unfinished child answer".into();
+    let settled = heycode_agent::UiEvent::TurnFinished {
+        reason: "stop".into(),
+        usage: None,
+        context_tokens: None,
+    };
+    state.apply(&settled);
+    state.refresh_question_liveness();
+    assert!(broker.is_pending(notification.id));
+    assert_eq!(
+        state.pending_runtime_question.as_ref().unwrap().input,
+        "unfinished child answer"
+    );
+    assert_eq!(state.input.lines(), &["preserved parent draft"]);
+    let visible = ScreenReaderSnapshot::from_state(&state).into_text();
+    assert!(visible.contains("Question from Atlas"), "{visible}");
+    source
+        .execute(
+            TaskAction::Interrupt(TaskKey(format!("child:{}", child_id.as_str()))),
+            CancellationToken::new(),
+        )
+        .await
+        .unwrap();
+    tokio::time::timeout(std::time::Duration::from_secs(10), async {
+        while broker.is_pending(notification.id) {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    state.refresh_question_liveness();
+    assert!(state.pending_runtime_question.is_none());
+    assert_eq!(state.input.lines(), &["preserved parent draft"]);
+    context.shutdown();
+}

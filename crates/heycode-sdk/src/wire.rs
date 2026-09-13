@@ -165,6 +165,9 @@ pub enum AppServerEvent {
     },
     /// The active runtime asks one human question.
     QuestionRequested {
+        /// Exact requesting session, absent on older servers.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        owner_session_id: Option<String>,
         /// Explicit answer mode for shared host questions.
         #[serde(default)]
         mode: heycode_core::QuestionMode,
@@ -963,4 +966,29 @@ pub struct AppSettingsSnapshot {
     /// Paths whose values were replaced by the redaction placeholder.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub redacted_paths: Vec<String>,
+}
+
+#[cfg(test)]
+mod question_owner_compatibility_tests {
+    #[test]
+    fn old_question_events_have_no_invented_sender_and_new_source_round_trips()
+    -> Result<(), serde_json::Error> {
+        let legacy = serde_json::json!({"type":"question_requested","request_id":"opaque","prompt":"Q?","choices":[]});
+        let event: super::AppServerEvent = serde_json::from_value(legacy.clone())?;
+        assert!(matches!(
+            event,
+            super::AppServerEvent::QuestionRequested {
+                owner_session_id: None,
+                ..
+            }
+        ));
+        let mut sourced = legacy;
+        sourced["owner_session_id"] = serde_json::json!("exact-origin");
+        let event: super::AppServerEvent = serde_json::from_value(sourced)?;
+        assert_eq!(
+            serde_json::to_value(event)?["owner_session_id"],
+            "exact-origin"
+        );
+        Ok(())
+    }
 }

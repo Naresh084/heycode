@@ -677,6 +677,8 @@ impl SubagentPreset {
 pub enum SubagentErrorCode {
     /// The exact pending occurrence was already admitted by another turn.
     AlreadyConsumed,
+    /// Recipient input capacity is exhausted; retry after consumption/recall.
+    Capacity,
     /// The request asks for a combination this provider does not prove.
     Unsupported,
     /// The nesting limit or another authority gate refused the request.
@@ -695,6 +697,7 @@ impl SubagentErrorCode {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::AlreadyConsumed => "already_consumed",
+            Self::Capacity => "capacity",
             Self::Unsupported => "unsupported",
             Self::Refused => "refused",
             Self::Unknown => "unknown",
@@ -2187,6 +2190,15 @@ fn kebab_case(value: &str) -> bool {
         })
 }
 
+fn inbox_admission_error(error: anyhow::Error) -> SubagentError {
+    let code = if error.downcast_ref::<crate::InboxAdmissionError>().is_some() {
+        SubagentErrorCode::Capacity
+    } else {
+        SubagentErrorCode::Failed
+    };
+    SubagentError::new(code, error.to_string())
+}
+
 fn task_io_error(error: std::io::Error) -> SubagentError {
     SubagentError::new(
         SubagentErrorCode::Failed,
@@ -3234,7 +3246,7 @@ impl SubagentRegistry {
         }
         let (id, wake) = recipient
             .submit_inbox_with_source(InboxDelivery::Steer, envelope, source)
-            .map_err(|e| SubagentError::new(SubagentErrorCode::Failed, e.to_string()))?;
+            .map_err(inbox_admission_error)?;
         if matches!(wake, crate::InboxWake::Wake) {
             let host = self
                 .job_host
@@ -3426,7 +3438,7 @@ impl SubagentRegistry {
                     let (message_id, _) = native.submit_inbox_with_source(
                         if steer { InboxDelivery::Steer } else { InboxDelivery::FollowUp },
                         message.clone(), delayed_source.clone().unwrap_or(heycode_session::InboxSource::Human),
-                    ).map_err(|error| SubagentError::new(SubagentErrorCode::Failed, error.to_string()))?;
+                    ).map_err(inbox_admission_error)?;
                     pending = Some(message_id);
                     queued_native = Some(native);
                 }
@@ -3486,10 +3498,7 @@ impl SubagentRegistry {
                 Ok((id, _)) => Some(id),
                 Err(error) => {
                     let _ = host.jobs.cancel(&job);
-                    return Err(SubagentError::new(
-                        SubagentErrorCode::Failed,
-                        error.to_string(),
-                    ));
+                    return Err(inbox_admission_error(error));
                 }
             }
         } else {
@@ -3543,7 +3552,32 @@ impl SubagentRegistry {
             token,
         }
     }
-    pub(crate) fn publish_native_child(&self, id: &SubagentId, agent: &Arc<Agent>) {
+    pub(crate) fn publish_native_child(self: &Arc<Self>, id: &SubagentId, agent: &Arc<Agent>) {
+        if let Some(jobs) = self
+            .job_host
+            .lock()
+            .ok()
+            .and_then(|host| host.as_ref().map(|host| host.jobs.clone()))
+        {
+            let registry = Arc::downgrade(self);
+            let weak_jobs = Arc::downgrade(&jobs);
+            let recipient = id.clone();
+            let weak_agent = Arc::downgrade(agent);
+            *agent
+                .completion_recovery_waker
+                .lock()
+                .unwrap_or_else(|e| e.into_inner()) = Some(Arc::new(move || {
+                if let (Some(registry), Some(jobs)) = (registry.upgrade(), weak_jobs.upgrade())
+                    && let Err(error) = registry.wake_native_parent(&recipient, &jobs)
+                    && let Some(agent) = weak_agent.upgrade()
+                {
+                    agent.ui().emit(crate::UiEvent::Error {
+                        message: error.to_string(),
+                    });
+                }
+            }));
+            agent.install_jobs(jobs);
+        }
         let observers = self
             .native_observers
             .lock()
@@ -4057,6 +4091,87 @@ mod tests {
         assert!(registry.presets().is_empty());
         assert!(registry.preset("reviewer").is_none());
     }
+    #[tokio::test]
+    async fn direct_child_to_root_message_obeys_recipient_capacity_without_losing_input() {
+        let (mut context, _dir, parent) = crate::jobs::agent_completion_tests::fixture();
+        let registry = Arc::new(SubagentRegistry::new());
+        let jobs = Arc::new(JobRegistry::new(0));
+        registry
+            .attach_job_host(&context, &parent, jobs.clone())
+            .unwrap();
+        registry
+            .register(Arc::new(OwnedProvider {
+                descriptor: descriptor(SubagentCapabilities {
+                    fork: CapabilitySupport::Supported,
+                    continuation: CapabilitySupport::Supported,
+                    interrupt: CapabilitySupport::Supported,
+                }),
+                starts: AtomicUsize::new(0),
+            }))
+            .unwrap();
+        let root = registry.root_authority(
+            SubagentId::new(parent.session().lock().unwrap().id().to_string()).unwrap(),
+        );
+        let child = registry
+            .start(
+                SubagentRequest::with_authority(
+                    "Sender",
+                    "work",
+                    SubagentSeed::Fresh,
+                    SubagentContinuation::Continuable,
+                    root.clone(),
+                )
+                .unwrap(),
+                CancellationToken::new(),
+            )
+            .await
+            .unwrap();
+        let authority = registry.authority_for_child(&root, &child.id).unwrap();
+        let _foreground = parent.defer_inbox_wakes();
+        let mut first = None;
+        for _ in 0..crate::MAX_PENDING_INBOX_MESSAGES {
+            let id = parent
+                .submit_inbox(InboxDelivery::Inject, "preserved human text")
+                .unwrap()
+                .0;
+            first.get_or_insert(id);
+        }
+        let error = registry
+            .send_agent_message(&authority, "parent", "bounded finding")
+            .unwrap_err();
+        assert_eq!(error.code(), SubagentErrorCode::Capacity);
+        assert!(error.message().contains("consume or recall"));
+        assert_eq!(
+            parent.pending_human_messages().len(),
+            crate::MAX_PENDING_INBOX_MESSAGES
+        );
+        parent.cancel_inbox(&first.unwrap()).unwrap();
+        let receipt = registry
+            .send_agent_message(&authority, "parent", "bounded finding")
+            .unwrap();
+        assert_eq!(receipt["status"], "queued");
+        assert_eq!(
+            parent.pending_inbox().next_step,
+            crate::MAX_PENDING_INBOX_MESSAGES
+        );
+        let session = parent.session().lock().unwrap();
+        assert_eq!(
+            session
+                .inbox()
+                .next_step()
+                .iter()
+                .filter(|message| matches!(
+                    message.source(),
+                    heycode_session::InboxSource::Agent { .. }
+                ))
+                .count(),
+            1
+        );
+        drop(session);
+        jobs.dispose();
+        context.shutdown();
+    }
+
     #[tokio::test]
     async fn named_message_routes_preserve_control_scope_and_pin_reused_names() {
         let registry = SubagentRegistry::new();

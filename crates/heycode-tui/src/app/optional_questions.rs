@@ -210,6 +210,32 @@ impl OptionalQuestions {
 }
 
 impl AppState {
+    /// Resolve a required card's sender by exact execution session; selection never supplies ownership.
+    pub(crate) fn runtime_question_owner_label(
+        &self,
+        question: &super::PendingRuntimeQuestionView,
+    ) -> String {
+        let Some(owner) = question.owner_session_id.as_deref() else {
+            return "an unidentified agent".into();
+        };
+        if self
+            .current_session_id()
+            .as_ref()
+            .is_some_and(|session| session.as_str() == owner)
+        {
+            return "Conversation".into();
+        }
+        self.task_console
+            .records
+            .iter()
+            .find(|record| {
+                record.kind == crate::task_console::TaskKind::Child
+                    && record.session.as_deref() == Some(owner)
+            })
+            .map(|record| crate::markdown::terminal_safe_span(&record.label).into_owned())
+            .unwrap_or_else(|| "another conversation".into())
+    }
+
     /// Whether the deliberately opened optional panel currently owns focus.
     pub fn optional_question_panel_visible(&self) -> bool {
         self.optional_questions.open
@@ -852,6 +878,7 @@ mod tests {
         state.open_optional_questions();
         state.handle_terminal_event(&Event::Paste("retained".into()));
         state.pending_runtime_question = Some(super::super::PendingRuntimeQuestionView {
+            owner_session_id: None,
             mode: heycode_core::QuestionMode::SingleChoice,
             progress: (1, 1),
             selected_choices: Default::default(),
@@ -980,6 +1007,7 @@ mod tests {
     fn required_multi_select_and_custom_answer_use_distinct_typed_responses() {
         let mut state = AppState::new("test", "/workspace".into());
         let event = heycode_agent::UiEvent::RuntimeQuestionRequested {
+            owner_session_id: None,
             request_id: "required".into(),
             header: Some("Scope".into()),
             prompt: "Which scope?".into(),
@@ -1014,5 +1042,70 @@ mod tests {
         state.apply(&event);
         state.handle_terminal_event(&key(KeyCode::Esc));
         assert_eq!(state.take_runtime_question_response().unwrap().1, None);
+    }
+    #[test]
+    fn required_sender_uses_exact_session_and_never_foreground_selection() {
+        let mut state = AppState::new("test", "/workspace".into());
+        let root = tempfile::tempdir().unwrap();
+        let parent_session = heycode_session::Session::create(root.path()).unwrap();
+        let parent_id = parent_session.id().to_string();
+        state.current_session = Some(std::sync::Arc::new(std::sync::Mutex::new(parent_session)));
+        let child = crate::task_console::TaskRecord {
+            key: crate::task_console::TaskKey("child:atlas".into()),
+            kind: crate::task_console::TaskKind::Child,
+            label: "Atlas".into(),
+            status: crate::task_console::TaskStatus::Running,
+            parent: Some(parent_id.clone()),
+            session: Some("exact-child-session".into()),
+            job: None,
+            capabilities: Default::default(),
+            telemetry: Default::default(),
+            detail: None,
+        };
+        state.task_console.records.push(child);
+        state.task_console.selected = Some(crate::task_console::TaskKey("child:atlas".into()));
+        let event = heycode_agent::UiEvent::RuntimeQuestionRequested {
+            owner_session_id: Some("exact-child-session".into()),
+            request_id: "required-child".into(),
+            mode: heycode_core::QuestionMode::FreeText,
+            progress: (1, 1),
+            header: None,
+            prompt: "Which path?".into(),
+            choices: Vec::new(),
+            choice_descriptions: Vec::new(),
+        };
+        state.apply(&event);
+        let question = state.pending_runtime_question.as_ref().unwrap();
+        assert_eq!(state.runtime_question_owner_label(question), "Atlas");
+        let accessible =
+            crate::app::accessibility::ScreenReaderSnapshot::from_state(&state).into_text();
+        assert!(accessible.contains("Question from Atlas"), "{accessible}");
+        state
+            .pending_runtime_question
+            .as_mut()
+            .unwrap()
+            .owner_session_id = Some(parent_id);
+        assert_eq!(
+            state.runtime_question_owner_label(state.pending_runtime_question.as_ref().unwrap()),
+            "Conversation"
+        );
+        state
+            .pending_runtime_question
+            .as_mut()
+            .unwrap()
+            .owner_session_id = Some("unavailable-child-session".into());
+        assert_eq!(
+            state.runtime_question_owner_label(state.pending_runtime_question.as_ref().unwrap()),
+            "another conversation"
+        );
+        state
+            .pending_runtime_question
+            .as_mut()
+            .unwrap()
+            .owner_session_id = None;
+        assert_eq!(
+            state.runtime_question_owner_label(state.pending_runtime_question.as_ref().unwrap()),
+            "an unidentified agent"
+        );
     }
 }

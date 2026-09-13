@@ -754,6 +754,28 @@ impl JobRegistry {
         self.commit_settlement(id, outcome, reservation)
     }
 
+    fn retain_completion(
+        &self,
+        id: &JobId,
+        pending: AgentCompletionDelivery,
+        reservation: SettlementReservation,
+    ) -> Result<(), JobError> {
+        let committed = {
+            let mut state = self.state.lock().map_err(|_| JobError::Unavailable)?;
+            let job = state.jobs.get_mut(id).ok_or(JobError::Unknown)?;
+            job.state = JobState::Settled(pending.outcome.clone());
+            job.settling = false;
+            job.admission = None;
+            state.completions.insert(id.clone(), pending);
+            if reservation.decision == WakeDecision::Demoted {
+                state.demoted = state.demoted.saturating_add(1);
+            }
+            self.persist_locked(&state)
+        };
+        self.changed.notify_waiters();
+        committed
+    }
+
     fn reserve_settlement(&self, id: &JobId) -> Result<SettlementReservation, JobError> {
         let mut state = self.state.lock().map_err(|_| JobError::Unavailable)?;
         let requested = {
@@ -966,20 +988,7 @@ impl Agent {
         // Keep the completed result retryable even when persistence fails. A
         // failed/uncertain write must not turn completed work back into Running
         // (the worker finalizer would discard its result as an unhandled error).
-        let committed = {
-            let mut state = jobs.state.lock().map_err(|_| JobError::Unavailable)?;
-            let job = state.jobs.get_mut(id).ok_or(JobError::Unknown)?;
-            job.state = JobState::Settled(settlement.outcome().clone());
-            job.settling = false;
-            job.admission = None;
-            state.completions.insert(id.clone(), pending.clone());
-            if reservation.decision == WakeDecision::Demoted {
-                state.demoted = state.demoted.saturating_add(1);
-            }
-            jobs.persist_locked(&state)
-        };
-        jobs.changed.notify_waiters();
-        committed?;
+        jobs.retain_completion(id, pending.clone(), reservation)?;
         self.deliver_agent_completion(jobs, id, &pending)
     }
 
@@ -1045,7 +1054,22 @@ impl Agent {
         Ok(pending.decision)
     }
 
-    pub(crate) fn recover_agent_completions(&self, jobs: &JobRegistry) -> anyhow::Result<()> {
+    pub(crate) fn has_pending_agent_completions(&self, jobs: &JobRegistry) -> bool {
+        let session_id = self
+            .session()
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .id()
+            .to_string();
+        jobs.state
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .completions
+            .values()
+            .any(|completion| completion.recipient_session == session_id)
+    }
+
+    pub(crate) fn recover_agent_completions(&self, jobs: &JobRegistry) -> anyhow::Result<usize> {
         let session_id = self
             .session()
             .lock()
@@ -1061,10 +1085,15 @@ impl Agent {
             .filter(|(_, completion)| completion.recipient_session == session_id)
             .map(|(id, completion)| (id.clone(), completion.clone()))
             .collect::<Vec<_>>();
-        for (id, completion) in pending {
-            self.deliver_agent_completion(jobs, &id, &completion)?;
+        let mut delivered = 0;
+        for (id, completion) in pending.into_iter().take(crate::MAX_PENDING_INBOX_MESSAGES) {
+            match self.deliver_agent_completion(jobs, &id, &completion) {
+                Ok(_) => delivered += 1,
+                Err(error) if error.downcast_ref::<crate::InboxAdmissionError>().is_some() => break,
+                Err(error) => return Err(error),
+            }
         }
-        Ok(())
+        Ok(delivered)
     }
 
     /// Settle one background job and durably deliver its notice.
@@ -1806,14 +1835,43 @@ impl crate::code_mode::ToolExecutionContext {
         );
         let submission = match self.enqueue_inbox_with_source(
             reservation.delivery,
-            text,
+            text.clone(),
             heycode_session::InboxSource::Job {
                 job_id: id.to_string(),
             },
         ) {
             Ok(submission) => submission,
             Err(error) => {
-                jobs.rollback_settlement(id, reservation);
+                if error.downcast_ref::<crate::InboxAdmissionError>().is_some() {
+                    let recipient_session = self
+                        .session
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .id()
+                        .to_string();
+                    let message = heycode_session::InboxMessage::with_source(
+                        heycode_session::InboxMessageId::new(format!(
+                            "job-completion:{recipient_session}:{id}"
+                        ))?,
+                        reservation.delivery,
+                        text,
+                        heycode_session::InboxSource::Job {
+                            job_id: id.to_string(),
+                        },
+                    )?;
+                    jobs.retain_completion(
+                        id,
+                        AgentCompletionDelivery {
+                            recipient_session,
+                            message,
+                            outcome: settlement.outcome().clone(),
+                            decision: reservation.decision,
+                        },
+                        reservation,
+                    )?;
+                } else {
+                    jobs.rollback_settlement(id, reservation);
+                }
                 return Err(error);
             }
         };
@@ -1892,6 +1950,118 @@ pub(crate) mod agent_completion_tests {
             tokio::spawn(async {}),
         )
         .unwrap()
+    }
+
+    #[tokio::test]
+    async fn full_inbox_retains_completion_across_restart_and_recovers_after_capacity_release() {
+        let (mut context, dir, agent) = fixture();
+        let jobs = Arc::new(JobRegistry::new(0));
+        let path = dir.path().join("capacity-completions.json");
+        jobs.attach_history(path.clone()).unwrap();
+        agent.install_jobs(jobs.clone());
+        let mut first = None;
+        for _ in 0..crate::MAX_PENDING_INBOX_MESSAGES {
+            let id = agent
+                .submit_inbox(InboxDelivery::Inject, "held context")
+                .unwrap()
+                .0;
+            first.get_or_insert(id);
+        }
+        let id = job(&jobs);
+        let settlement =
+            JobSettlement::new(JobOutcome::Completed, "retained completed finding").unwrap();
+        let source = agent.agent_completion_source(
+            &id,
+            "task-0",
+            "Capacity scout",
+            "main",
+            settlement.outcome(),
+        );
+        let error = agent
+            .settle_agent_job(&jobs, &id, &settlement, source)
+            .unwrap_err();
+        assert_eq!(
+            error.downcast_ref::<crate::InboxAdmissionError>(),
+            Some(&crate::InboxAdmissionError::PendingCount)
+        );
+        assert_eq!(
+            jobs.wait_for_settlement(&id).await.unwrap(),
+            JobOutcome::Completed
+        );
+        assert_eq!(admitted(&agent), 0);
+        assert!(agent.has_pending_agent_completions(&jobs));
+        jobs.dispose();
+        let recovered = Arc::new(JobRegistry::new(0));
+        recovered.attach_history(path).unwrap();
+        agent.install_jobs(recovered.clone());
+        assert!(agent.has_pending_agent_completions(&recovered));
+        assert!(agent.cancel_inbox(&first.unwrap()).unwrap());
+        assert_eq!(admitted(&agent), 1);
+        assert!(!agent.has_pending_agent_completions(&recovered));
+        assert_eq!(
+            agent.pending_inbox().next_step,
+            crate::MAX_PENDING_INBOX_MESSAGES
+        );
+        agent.recover_agent_completions(&recovered).unwrap();
+        assert_eq!(admitted(&agent), 1);
+        let consumed = agent.drain_next_step().unwrap();
+        assert_eq!(
+            consumed
+                .iter()
+                .filter(|text| text.contains("retained completed finding"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            agent
+                .session()
+                .lock()
+                .unwrap()
+                .events()
+                .iter()
+                .filter(|event| matches!(event.kind, SessionEventKind::TurnStart { .. }))
+                .count(),
+            0,
+            "capacity reconciliation never reruns work or starts a provider by itself"
+        );
+        recovered.dispose();
+        context.shutdown();
+    }
+
+    #[tokio::test]
+    async fn full_inbox_retains_generic_job_notice_until_human_recall_frees_capacity() {
+        let (mut context, _dir, agent) = fixture();
+        let jobs = Arc::new(JobRegistry::new(0));
+        agent.install_jobs(jobs.clone());
+        for _ in 0..crate::MAX_PENDING_INBOX_MESSAGES {
+            agent
+                .submit_inbox(InboxDelivery::Inject, "human queued input")
+                .unwrap();
+        }
+        let id = job(&jobs);
+        let settlement =
+            JobSettlement::new(JobOutcome::Completed, "process output retained").unwrap();
+        assert!(
+            agent
+                .settle_job(&jobs, &id, &settlement)
+                .unwrap_err()
+                .is::<crate::InboxAdmissionError>()
+        );
+        assert_eq!(
+            jobs.wait_for_settlement(&id).await.unwrap(),
+            JobOutcome::Completed
+        );
+        assert_eq!(
+            agent.recall_human_messages().unwrap().len(),
+            crate::MAX_PENDING_INBOX_MESSAGES
+        );
+        assert!(!agent.has_pending_agent_completions(&jobs));
+        assert_eq!(
+            agent.drain_next_step().unwrap(),
+            vec![format!("[job {id} completed] process output retained")]
+        );
+        jobs.dispose();
+        context.shutdown();
     }
 
     #[tokio::test]

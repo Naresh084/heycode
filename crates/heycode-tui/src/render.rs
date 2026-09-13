@@ -5071,6 +5071,9 @@ pub(crate) fn tool_view_height_bound(
                     })
                     .sum::<usize>()
         }
+        // Incoming messages retain six content rows and a separate disclosure
+        // when clipped; the prefix index must budget that seventh body row.
+        "agent_message" => OTHER_TAIL_LINES + 1,
         // One row per todo, and the list is the model's to size.
         "todo_write" => value.as_array().map_or(0, Vec::len),
         // Every required question in a batch is a meaningful receipt. Use
@@ -7587,7 +7590,16 @@ fn runtime_question_lines(
             .collect::<Vec<_>>();
         markdown::wrap_styled(&spans, usize::from(width.max(1)), indent)
     };
-    let mut header = Vec::new();
+    let mut header = wrap(
+        vec![Span::styled(
+            format!(
+                "Question from {}",
+                state.runtime_question_owner_label(question)
+            ),
+            dim,
+        )],
+        0,
+    );
     if question.progress.1 > 1 {
         header.push(Line::styled(
             format!(
@@ -8937,6 +8949,7 @@ mod runtime_question_presentation_tests {
 
     fn fixture() -> crate::app::PendingRuntimeQuestionView {
         crate::app::PendingRuntimeQuestionView {
+            owner_session_id: None,
             mode: heycode_core::QuestionMode::SingleChoice,
             progress: (1, 1),
             selected_choices: Default::default(),
@@ -8964,10 +8977,14 @@ mod runtime_question_presentation_tests {
             .join("\n");
         assert!(text.contains("□ Fixture"), "{text}");
         assert!(
-            lines[0].spans[0]
-                .style
-                .add_modifier
-                .contains(ratatui::style::Modifier::REVERSED)
+            lines
+                .iter()
+                .flat_map(|line| &line.spans)
+                .find(|span| span.content.contains("□ Fixture"))
+                .is_some_and(|span| span
+                    .style
+                    .add_modifier
+                    .contains(ratatui::style::Modifier::REVERSED))
         );
         assert!(
             text.contains("❯ 1. Alpha\n     First local fixture"),

@@ -2049,6 +2049,7 @@ impl AppBackend for NativeBackend {
                                 .collect();
                             let emitted = sink
                                 .emit(AppServerEvent::QuestionRequested {
+                                    owner_session_id:request.owner_session_id,
                                     mode: request.mode,
                                     progress: request.progress,
                                     request_id: format!(
@@ -2712,7 +2713,15 @@ impl NativeBackend {
                 mode,
                 progress,
             } => {
+                let owner_session_id = self
+                    .agent
+                    .session()
+                    .lock()
+                    .map_err(|_| AppServerError::unavailable())?
+                    .id()
+                    .to_string();
                 sink.emit(AppServerEvent::QuestionRequested {
+                    owner_session_id: Some(owner_session_id),
                     mode: *mode,
                     progress: *progress,
                     request_id: request_id.as_str().to_owned(),

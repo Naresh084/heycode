@@ -151,6 +151,8 @@ pub(crate) fn validate_question_spec(
 /// One question delivered to an active front end.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QuestionNotification {
+    /// Exact originating session when supplied by the execution scope.
+    pub owner_session_id: Option<String>,
     /// Correlation id used only by this service.
     pub id: u64,
     /// Requested answer mode.
@@ -415,6 +417,7 @@ impl InteractiveQuestion {
             );
         }
         let notification = QuestionNotification {
+            owner_session_id: crate::session_control::executing_question_session_id(),
             id,
             mode: question.mode,
             progress,
@@ -551,10 +554,7 @@ fn validate_args(args: &AskUserQuestionArgs) -> Result<(), heycode_tools::ToolEr
 }
 
 fn valid_line(value: &str, maximum: usize) -> bool {
-    valid_block(value, maximum)
-        && !value
-            .chars()
-            .any(|character| matches!(character, '\n' | '\r'))
+    valid_block(value, maximum) && !value.chars().any(char::is_control)
 }
 
 fn valid_block(value: &str, maximum: usize) -> bool {
@@ -818,5 +818,48 @@ mod tests {
         assert!(questions.answer_owned(owner, first.id, QuestionAnswer::Cancelled));
         assert!(task.await.unwrap().is_err());
         assert!(subscription.try_recv().is_err());
+    }
+    #[tokio::test]
+    async fn required_question_notification_retains_exact_execution_session() {
+        let root = tempfile::tempdir().unwrap();
+        let session = Arc::new(Mutex::new(
+            heycode_session::Session::create(root.path()).unwrap(),
+        ));
+        let session_id = session.lock().unwrap().id().to_string();
+        let owner = crate::session_control::QuestionOwner {
+            session,
+            bus: heycode_core::EventBus::default(),
+        };
+        let questions = InteractiveQuestion::new();
+        let mut subscription = questions.take_subscription().unwrap();
+        let subscriber_id = subscription.owner_id();
+        let tool = AskUserQuestionTool::new(questions.clone());
+        let task = tokio::spawn(async move {
+            owner.scope(tool.run(serde_json::json!({"questions":[{"id":"intent","question":"Required child choice?","mode":"free_text"}]}),&heycode_tools::ToolCtx::default())).await
+        });
+        let notification = subscription.recv().await.unwrap();
+        assert_eq!(
+            notification.owner_session_id.as_deref(),
+            Some(session_id.as_str())
+        );
+        assert!(questions.answer_owned(
+            subscriber_id,
+            notification.id,
+            QuestionAnswer::Answer("Child answer".into())
+        ));
+        assert_eq!(
+            task.await.unwrap().unwrap()["answers"][0]["answer"],
+            "Child answer"
+        );
+    }
+
+    #[test]
+    fn structured_ids_and_labels_reject_control_characters_before_admission() {
+        for args in [
+            serde_json::json!({"questions":[{"id":"bad\tid","question":"Q?","mode":"free_text"}]}),
+            serde_json::json!({"questions":[{"question":"Q?","mode":"multiple_choice","options":[{"label":"bad\tlabel"},{"label":"Good"}]}]}),
+        ] {
+            assert!(parse_questions(args).is_err());
+        }
     }
 }

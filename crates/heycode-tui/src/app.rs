@@ -679,6 +679,8 @@ pub struct AppState {
     )>,
     /// Handle to answer dialogs; wired by the runner when ask mode is active.
     pub approvals: Option<std::sync::Arc<heycode_agent::InteractiveApproval>>,
+    /// Exact native broker subscription that owns required question cards.
+    pub question_subscription: Option<(std::sync::Arc<heycode_agent::InteractiveQuestion>, u64)>,
     runtime_permission_ids: HashMap<u64, String>,
     next_runtime_permission_id: u64,
     pending_runtime_permission_response:
@@ -1562,6 +1564,8 @@ pub enum PendingMcpElicitationMode {
 
 /// One delegated-runtime question with choices or bounded free text.
 pub struct PendingRuntimeQuestionView {
+    /// Exact requesting session, resolved to its own label at render time.
+    pub owner_session_id: Option<String>,
     /// Explicit requested answer shape.
     pub mode: heycode_core::QuestionMode,
     /// One-based batch position and total.
@@ -1694,6 +1698,7 @@ impl Default for AppState {
             queued_mcp_elicitations: std::collections::VecDeque::new(),
             pending_mcp_elicitation_response: None,
             approvals: None,
+            question_subscription: None,
             runtime_permission_ids: HashMap::new(),
             next_runtime_permission_id: u64::MAX,
             pending_runtime_permission_response: None,
@@ -4437,8 +4442,8 @@ impl AppState {
         self.active_turn = false;
         self.verb = None;
         self.spinner = 0;
-        // Runtime questions and permissions belong to the foreground turn.
-        // Local approvals can also belong to background work; retain those
+        // Delegated-runtime permissions belong to the foreground turn.
+        // Native questions and approvals can belong to background work; retain those
         // only when their actual waiter is still live.
         if let Some(ask) = self.pending_ask.take() {
             self.queued_asks.push_front(ask);
@@ -4453,7 +4458,36 @@ impl AppState {
         self.pending_ask = self.queued_asks.pop_front();
         self.runtime_permission_ids.clear();
         self.pending_runtime_permission_response = None;
-        self.pending_runtime_question = None;
+        if !self
+            .pending_runtime_question
+            .as_ref()
+            .is_some_and(|question| self.broker_question_is_pending(&question.request_id))
+        {
+            self.pending_runtime_question = None;
+        }
+    }
+
+    fn broker_question_is_pending(&self, request_id: &str) -> bool {
+        let Some((owner, id)) = parse_tui_agent_question_id(request_id) else {
+            return false;
+        };
+        self.question_subscription
+            .as_ref()
+            .is_some_and(|(broker, subscription)| owner == *subscription && broker.is_pending(id))
+    }
+
+    /// Retract native cards when their actual owner cancels or resolves the waiter.
+    pub fn refresh_question_liveness(&mut self) {
+        if self
+            .pending_runtime_question
+            .as_ref()
+            .is_some_and(|question| {
+                parse_tui_agent_question_id(&question.request_id).is_some()
+                    && !self.broker_question_is_pending(&question.request_id)
+            })
+        {
+            self.pending_runtime_question = None;
+        }
     }
 
     fn queue_inbox_submission(&mut self, delivery: heycode_session::InboxDelivery, text: String) {
@@ -5322,6 +5356,7 @@ impl AppState {
                 self.settle_optional_question(session_id, question_id);
             }
             UiEvent::RuntimeQuestionRequested {
+                owner_session_id,
                 request_id,
                 header,
                 prompt,
@@ -5350,6 +5385,7 @@ impl AppState {
                 self.close_mcp_panel();
                 self.close_plugin_panel();
                 self.pending_runtime_question = Some(PendingRuntimeQuestionView {
+                    owner_session_id: owner_session_id.clone(),
                     mode: *mode,
                     progress: *progress,
                     selected_choices: Default::default(),
@@ -9121,6 +9157,7 @@ fn app_server_ui_events(event: heycode_app_server::AppServerEvent) -> Vec<UiEven
             detail,
         }],
         heycode_app_server::AppServerEvent::QuestionRequested {
+            owner_session_id,
             request_id,
             header,
             prompt,
@@ -9129,6 +9166,7 @@ fn app_server_ui_events(event: heycode_app_server::AppServerEvent) -> Vec<UiEven
             mode,
             progress,
         } => vec![UiEvent::RuntimeQuestionRequested {
+            owner_session_id,
             request_id,
             header,
             prompt,
@@ -10122,6 +10160,7 @@ where
         .take_subscription()
         .ok_or_else(|| anyhow::anyhow!("interactive question surface is already owned"))?;
     let question_owner = question_rx.owner_id();
+    state.question_subscription = Some((deps.questions.clone(), question_owner));
     let app_turn_active = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let direct_ui = ui_tx.clone();
     let direct_app_turn = app_turn_active.clone();
@@ -10284,6 +10323,7 @@ where
 
     let result = async {
         loop {
+            state.refresh_question_liveness();
             if let Some(outcome) = state.take_run_outcome() {
                 break Ok(outcome);
             }
@@ -11117,6 +11157,7 @@ where
                 match maybe_question {
                     Some(question) if deps.questions.is_pending(question.id) => {
                         state.apply(&UiEvent::RuntimeQuestionRequested {
+                            owner_session_id:question.owner_session_id,
                             request_id: tui_agent_question_id(question_owner, question.id),
                             mode:question.mode, progress:question.progress,
                             header: question.header,
@@ -12525,6 +12566,7 @@ mod app_server_event_tests {
 
         let question =
             app_server_ui_events(heycode_app_server::AppServerEvent::QuestionRequested {
+                owner_session_id: None,
                 mode: heycode_core::QuestionMode::SingleChoice,
                 progress: (1, 1),
                 request_id: "codex-request-2".to_owned(),
@@ -12551,6 +12593,7 @@ mod app_server_event_tests {
     #[test]
     fn question_other_captures_slash_text_and_escape_is_explicit_cancellation() {
         let event = UiEvent::RuntimeQuestionRequested {
+            owner_session_id: None,
             mode: heycode_core::QuestionMode::SingleChoice,
             progress: (1, 1),
             request_id: "agent-question-1".to_owned(),

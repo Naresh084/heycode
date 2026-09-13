@@ -732,3 +732,95 @@ fn send_message_results_failures_pending_approvals_and_incoming_messages_remain_
     assert!(transcript(&state).contains("The parser needs an explicit delimiter."));
     Ok(())
 }
+
+#[test]
+fn long_incoming_messages_keep_disclosure_and_cached_scroll_boundaries() -> anyhow::Result<()> {
+    let state = AppState::new("native", "/workspace".into());
+    let items = (0..80)
+        .map(|index| {
+            let name = format!("Agent {index:02}");
+            let body = (1..=9)
+                .map(|line| format!("message-{index:02} row-{line}"))
+                .collect::<Vec<_>>()
+                .join("\n");
+            let text = format!(
+                "[Agent message from {} (agent-{index})]\n{body}",
+                serde_json::to_string(&name)?
+            );
+            let message = InboxMessage::with_source(
+                InboxMessageId::new(format!("incoming-{index}"))?,
+                InboxDelivery::Steer,
+                text,
+                InboxSource::Agent {
+                    agent_id: format!("agent-{index}"),
+                    agent_name: name,
+                    recipient_id: "main".into(),
+                    run_id: format!("run-{index}"),
+                    completion_id: None,
+                    outcome: None,
+                },
+            )?;
+            Ok(super::inbox_transcript::agent_message_item(message))
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?;
+    for width in [20, 60, 110] {
+        let full = items
+            .iter()
+            .enumerate()
+            .flat_map(|(index, item)| {
+                let neighbors = crate::render::item_neighbors(&items, index);
+                let rows = crate::render::render_transcript_item(
+                    item,
+                    neighbors,
+                    width,
+                    false,
+                    state.styles(),
+                );
+                assert_eq!(
+                    rows.len(),
+                    9,
+                    "header, six content rows, disclosure, and blank"
+                );
+                assert!(
+                    rows.len() <= crate::transcript::height_bound(item, neighbors, width, false)
+                );
+                rows.into_iter()
+                    .map(|line| line.to_string())
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let mut cache = crate::transcript::TranscriptRenderCache::default();
+        // Beyond 32 items scrolling uses the prefix height index. Offsets at
+        // exact receipt boundaries must agree with the fully rendered source.
+        for offset in [0, 9, 288, 297, 360, 540, 720] {
+            let spec = crate::transcript::ViewportSpec {
+                width,
+                visible_lines: 18,
+                scroll_from_bottom: offset,
+                show_reasoning: false,
+                style_generation: 0,
+            };
+            let start = full.len().saturating_sub(offset).saturating_sub(18);
+            for _ in 0..2 {
+                let viewport = cache.viewport(&items, spec, |item, neighbors| {
+                    crate::render::render_transcript_item(
+                        item,
+                        neighbors,
+                        width,
+                        false,
+                        state.styles(),
+                    )
+                });
+                let shown = viewport.iter().map(ToString::to_string).collect::<Vec<_>>();
+                let mut expected = full[start..start + 18].to_vec();
+                // Viewports omit trailing separator rows, without pulling in
+                // older content or changing the indexed starting position.
+                while expected.last().is_some_and(String::is_empty) {
+                    expected.pop();
+                }
+                assert_eq!(shown, expected, "width={width}, offset={offset}");
+            }
+        }
+    }
+    Ok(())
+}

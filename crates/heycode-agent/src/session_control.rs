@@ -15,6 +15,20 @@ tokio::task_local! {
     static QUESTION_OWNER: QuestionOwner;
 }
 
+/// Exact execution-scoped owner, never inferred from question text or UI selection.
+pub(crate) fn executing_question_session_id() -> Option<String> {
+    QUESTION_OWNER
+        .try_with(|owner| {
+            owner
+                .session
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .id()
+                .to_string()
+        })
+        .ok()
+}
+
 /// Per-execution question target. Native children and script calls must use
 /// their actual session, not a parent captured by an inherited tool registry.
 #[derive(Clone)]

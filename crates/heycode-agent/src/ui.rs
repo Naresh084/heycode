@@ -506,6 +506,8 @@ pub enum UiEvent {
     },
     /// A delegated runtime asks one bounded non-secret human question.
     RuntimeQuestionRequested {
+        /// Exact requesting session, absent when an older transport cannot provide it.
+        owner_session_id: Option<String>,
         /// Explicit answer interaction mode.
         mode: heycode_core::QuestionMode,
         /// Position and total in a question batch.

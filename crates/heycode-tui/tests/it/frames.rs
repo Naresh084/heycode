@@ -587,6 +587,7 @@ fn todo_write_renders_checklist_glyphs() {
 fn question_card_shows_descriptions_custom_choice_and_no_competing_composer() {
     let mut state = AppState::new("m", std::path::PathBuf::from("/p"));
     state.pending_runtime_question = Some(PendingRuntimeQuestionView {
+        owner_session_id: None,
         mode: heycode_core::QuestionMode::SingleChoice,
         progress: (1, 1),
         selected_choices: Default::default(),
