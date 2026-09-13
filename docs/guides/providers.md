@@ -150,11 +150,6 @@ Interpret evidence conservatively:
 - A composition proof shows that a route is reachable without proving a
   request succeeded.
 
-The required live matrix is maintained in
-[QUALITY_AND_RELEASE.md](../engineering/QUALITY_AND_RELEASE.md#live-provider-matrix).
-Current implementation evidence and gaps are in
-[PROVIDERS.md](../engineering/PROVIDERS.md), not duplicated here.
-
 ## Custom and additional providers
 
 Use `llm.base_url` only for an endpoint whose protocol and authority you have

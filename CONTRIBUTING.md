@@ -16,5 +16,3 @@ The fake provider is a deterministic development aid, not evidence of live model
 Keep pull requests focused, describe the resulting user behavior, and include the tests you ran. Changes to permissions, persistence, tool execution, or updating need regression coverage for failure cases. For terminal changes, include an actual terminal capture and check narrow layouts and disabled animations.
 
 Read [architecture](docs/guides/architecture.md) for service boundaries and [AGENTS.md](AGENTS.md) for naming guidance. Contributions are licensed under the repository's MIT license. Preserve third-party notices and identify the origin and license of any added asset or dependency.
-
-Maintainer references: [engineering overview](docs/engineering/README.md) and [engineering tasks](docs/engineering/TASKS.md).

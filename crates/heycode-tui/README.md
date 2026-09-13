@@ -452,8 +452,7 @@ an owned private temporary module cache under the existing sandbox policy;
 there is no less-restricted execution fallback. Other platforms need an
 explicit `HEYCODE_VOICE_CAPTURE_COMMAND` literal-argv helper. A configured local
 recognizer/model is required on every platform through `HEYCODE_STT_COMMAND`.
-No provider audio support or paid model call is required. See
-[the dictation implementation and setup](../../docs/plans/audit-voice-dictation-implementation.md).
+No provider audio support or paid model call is required.
 
 Native sessions expose `/recap [on|off]`, `/btw <question>`, `/output-style`,
 `/questions` and `/answer`. Full-screen focus reporting triggers a return recap

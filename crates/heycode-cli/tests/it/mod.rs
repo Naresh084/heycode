@@ -6,7 +6,6 @@ mod cloud_pty;
 mod composition;
 mod composition_doctor;
 mod credentials_isolation;
-mod documentation_program_links;
 mod e2e;
 mod first_run_orchestration;
 mod init_command;

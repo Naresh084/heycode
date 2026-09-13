@@ -36,5 +36,3 @@ The IPC directory is user-owned with mode `0700`; socket and registry files use 
 ## Scope and evidence
 
 This is local process hosting. It does not provide cloud execution, remote control, system-start services, mobile handoff or automatic restart after an OS reboot. Attaching keeps the live owner's current model, permissions and configuration. Use its normal commands to change those settings. `--no-background` and noninteractive invocations retain direct process behavior.
-
-The dedicated regression is `scripts/session_background_pty.py`, using a loopback HTTP fixture, real CLI processes, real PTYs and temporary homes. Protocol boundary tests are in `crates/heycode-session/tests/background.rs`. Controlled evidence is separate from real provider validation and Claude UI parity; neither is established by these fixtures.

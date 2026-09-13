@@ -141,9 +141,5 @@ external transports suppressed. The second proves only an offline product
 turn; restricted authority may intentionally omit project servers. Neither is
 a live MCP handshake.
 
-For the current protocol/transport implementation and remaining elicitation,
-allowlist, OAuth, and official-server evidence gaps, use
-[ARCHITECTURE.md](../engineering/ARCHITECTURE.md) and the authoritative
-[tracker](../engineering/TASKS.md#doc-documentation-and-product-truth). Root
-config fields/defaults are generated in the
+Config fields and defaults are listed in the
 [configuration reference](../reference/configuration.md).

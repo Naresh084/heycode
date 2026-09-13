@@ -1,9 +1,0 @@
-schema_version = 25
-
-[mcp.servers.synthetic-stdio]
-command = "synthetic-mcp"
-args = ["--stdio"]
-
-[mcp.servers.synthetic-http]
-url = "https://mcp.invalid/example"
-

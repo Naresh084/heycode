@@ -31,8 +31,8 @@ compile.
 
 ## Run the isolated offline smoke
 
-This is the one guide example executed by `scripts/verify_docs.py`. It uses a
-new temporary home, the fake provider, and restricted workspace authority.
+This example uses a new temporary home, the fake provider, and restricted
+workspace authority.
 
 ```sh
 # docs-check: run

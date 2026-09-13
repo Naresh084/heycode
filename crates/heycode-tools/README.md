@@ -35,7 +35,7 @@ through the live web policy. Artifact previews and notebook edits use filesystem
 capabilities and content revisions. The fixed macOS helper supplies app-targeted
 capture, accessibility and input; local speech accepts an explicitly selected
 PCM WAV through an optional installed recognizer. Neither captures microphone
-input. See [setup, limits and evidence](../../docs/plans/audit-interactive-integrations-implementation.md).
+input.
 
 Focused verification:
 

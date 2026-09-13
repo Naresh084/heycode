@@ -125,8 +125,3 @@ result is architecture evidence, not live credential/provider/MCP health.
   [commands](../reference/commands.md), and
   [configuration](../reference/configuration.md) pages keep volatile descriptor
   inventories out of this prose.
-
-The master architecture plan remains
-[engineering/ARCHITECTURE.md](../engineering/ARCHITECTURE.md). This guide describes
-current contracts; it does not promote incomplete external plugin activation,
-delegated runtime, IDE, platform, or live-provider paths.

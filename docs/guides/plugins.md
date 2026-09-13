@@ -134,6 +134,5 @@ That does not prove all of the following:
 - non-Unix cache owner-security equivalence;
 - a marketplace, update channel, or release installer.
 
-Those gaps stay explicit in the [engineering tracker](../engineering/TASKS.md).
 The activation transaction and generation rules are detailed in
 [plugin lifecycle](plugin-lifecycle.md), with a matching diagram.

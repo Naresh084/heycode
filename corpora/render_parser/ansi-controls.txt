@@ -1,3 +1,0 @@
-synthetic [31mred[0m text
-synthetic-link ]8;;https://example.invalid/\label]8;;\
-

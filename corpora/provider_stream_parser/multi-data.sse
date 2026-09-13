@@ -1,7 +1,0 @@
-event: message
-id: 7
-data: {"choices":[
-data: {"delta":{"content":"joined"}}]}
-
-data: [DONE]
-

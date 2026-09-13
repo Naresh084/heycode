@@ -193,15 +193,14 @@ behavior, the second proves a real world can reach it.
 
 ## 9. Verification and acceptance
 
-Before changing a tracker row:
+Before submitting a provider change:
 
 - write red protocol/admission/replay/cancellation/body-canary tests first;
 - run crate formatting and warnings-denied all-target clippy;
 - run provider package tests once, then only diagnosed exact failures;
 - run affected shared adapter/Agent/session/composition tests;
 - regenerate `docs/reference/capabilities.md` if route classes changed;
-- update provider README, STATUS, GOTCHAS when a new lesson exists, FEATURES,
-  tracker and implementation log in the same coherent change;
+- update the provider README and relevant public guides;
 - record what was not observed (live credential, platform, account feature).
 
 Live evidence uses an isolated route and never prints content/credentials. A

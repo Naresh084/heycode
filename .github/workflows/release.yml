@@ -40,6 +40,8 @@ jobs:
           else
             test "$GITHUB_REF" = "refs/tags/v$version"
           fi
+      - name: Test installer verification and replacement
+        run: python3 .github/tests/test_installer.py
       - name: Test distribution and terminal behavior
         run: cargo test --locked -p heycode-agent -p heycode-config -p heycode-install -p heycode-tui -p heycode-cli --all-targets
       - name: Build standalone executable

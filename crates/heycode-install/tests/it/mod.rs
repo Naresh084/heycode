@@ -8,4 +8,3 @@ mod release_policy;
 mod rollback_gate;
 mod support;
 mod transitions;
-mod workflow;

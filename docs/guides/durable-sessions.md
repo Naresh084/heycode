@@ -226,7 +226,7 @@ A new kind needs all of the following in the same change:
 3. `KNOWN_KINDS_V2` entry, never v1;
 4. raw v1 rejection and v2 fixture/drift coverage;
 5. exhaustive neutral/request/repair handling;
-6. documentation regeneration via `python3 scripts/verify_docs.py`.
+6. review the session event reference for contract changes.
 
 Only the enum matches are compiler-enforced. The generated reference and drift
 tests catch the plain-list touchpoints.

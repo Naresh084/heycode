@@ -1,3 +1,0 @@
-{"v":1,"seq":0,"time_ms":1,"kind":"user/message","data":{"text":"synthetic input"}}
-{"v":2,"seq":1,"time_ms":2,"kind":"assistant/message","data":{"turn":0,"step":0,"content":"synthetic output"}}
-

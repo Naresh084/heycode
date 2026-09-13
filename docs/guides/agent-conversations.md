@@ -43,6 +43,12 @@ Legacy inspection/wait dispatch remains compatible for diagnostics, but those
 operations are not advertised as the normal model workflow and do not return
 successful result bodies through a second delivery path.
 
+Each native recipient admits at most 256 pending messages and 4 MiB of pending
+text across its input queues. A full inbox rejects new messages explicitly;
+existing input is retained and can be consumed or recalled. Completed work
+remains in the durable delivery outbox until capacity is available. Recovery
+delivers that retained completion without executing the completed work again.
+
 ## Asking for input
 
 Use `ask_user_question` when an answer is required to proceed. Use
@@ -88,5 +94,4 @@ question protocols have separate limits: the Codex adapter preserves supported
 batches and typed selections; the pinned Claude scalar dialog protocol rejects
 batch or multiple-selection shapes it cannot represent. Unsupported secret or
 restricted-custom-answer requests fail explicitly. These adapter contracts do
-not establish live-provider behavior; controlled test evidence is tracked in
-the [implementation tracker](../engineering/agent-message-delivery-tracker.md).
+not establish live-provider behavior.
