@@ -6,7 +6,7 @@
 # config, provider and MCP, and the 8-run high-cost render seed set after its
 # ANSI/OSC boundary repair. The scheduled matrix remains unobserved until
 # GitHub records its first run.
-name: Fuzz and chaos (HOSTED RUNS UNOBSERVED)
+name: Fuzz and chaos
 
 on:
   pull_request:

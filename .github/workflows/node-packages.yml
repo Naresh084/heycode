@@ -38,7 +38,7 @@
 # installed-host journey.
 # ────────────────────────────────────────────────────────────────────────────
 
-name: Node packages (NEVER EXECUTED on CI)
+name: Node packages
 
 "on":
   pull_request:

@@ -94,10 +94,9 @@ impl OptionalQuestions {
                     row.selection = *index;
                     if row.mode == heycode_core::QuestionMode::MultipleChoice
                         && *index < row.choices.len()
+                        && !row.selected_choices.insert(*index)
                     {
-                        if !row.selected_choices.insert(*index) {
-                            row.selected_choices.remove(index);
-                        }
+                        row.selected_choices.remove(index);
                     }
                 }
             } else if mouse.kind == MouseEventKind::ScrollUp {

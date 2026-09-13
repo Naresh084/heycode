@@ -3,7 +3,7 @@
 
 This page is generated from current Rust contracts. Regenerate with `python3 scripts/verify_docs.py --write`; verify with `python3 scripts/verify_docs.py`.
 
-Source digest: `b668a02f4817b708c89716ad7f0e557cdb4fd8a99f605722690c2f1a294f94cc`
+Source digest: `461ae965420f1106552141653e1da1bfdf8d931bc06e8061b1ff4af874688446`
 
 Sources:
 
@@ -116,7 +116,7 @@ The table follows the default real-composition catalog order. Command availabili
 | `/vim [state]` | Toggle or set composer Vim mode | `immediate` | `tui` |
 | `/scroll-speed` | Preview and persist mouse-wheel scroll speed | `immediate` | `tui` |
 | `/statusline [action] [value]` | Show or configure the built-in status line | `immediate` | `tui` |
-| `/release-notes` | Read the changelog bundled with this build | `immediate` | `tui` |
+| `/release-notes [full]` | Point at the changelog bundled with this build, or print it with `full` | `immediate` | `tui` |
 | `/insights` | Summarize structural facts from local durable session journals | `queued` | `tui` |
 | `/reload-plugins` | Reload installed plugins by reopening this session | `queued` | `tui` |
 | `/tui [mode]` | Switch terminal presentation and reopen this session | `queued` | `tui` |
@@ -134,7 +134,7 @@ The table follows the default real-composition catalog order. Command availabili
 | `/rewind [turn] [files]` | Restore a durable conversation checkpoint, optionally native file edits | `queued` | `tui` |
 | `/voice [action]` | Dictate locally into your draft without submitting | `immediate` | `tui` |
 | `/mcp [action] [server]` | Open or manage MCP servers | `immediate` | `panel-commands` |
-| `/agents` | Open the delegated-agent panel | `immediate` | `panel-commands` |
+| `/agents` | Browse agent conversations; providers opens the provider/preset catalog | `immediate` | `panel-commands` |
 | `/hooks` | Open the lifecycle-hooks panel | `immediate` | `panel-commands` |
 | `/workflows` | Open workflow phases and agents | `immediate` | `panel-commands` |
 | `/list-agents` | List this session and its admitted agent conversations | `immediate` | `panel-commands` |

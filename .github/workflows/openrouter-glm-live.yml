@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 20
     env:
       HEYCODE_E2E: "1"
-      HEYCODE_LIVE_ARTIFACT_DIR: ${{ runner.temp }}/heycode-live-artifacts
+      HEYCODE_LIVE_ARTIFACT_DIR: ${{ github.workspace }}/tmp/heycode-live-artifacts
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
     steps:
       - uses: actions/checkout@v4
@@ -29,6 +29,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: openrouter-glm-live-artifact
-          path: ${{ runner.temp }}/heycode-live-artifacts/*.json
+          path: ${{ github.workspace }}/tmp/heycode-live-artifacts/*.json
           if-no-files-found: error
           retention-days: 14

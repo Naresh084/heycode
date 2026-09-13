@@ -745,6 +745,12 @@ impl std::error::Error for SubagentError {}
 /// A delegated child that survived its first turn.
 #[async_trait]
 pub trait SubagentHandle: Send + Sync {
+    /// A non-successful initial run may still retain a valid conversation.
+    /// The registry retains the handle before surfacing this typed outcome.
+    fn initial_run_error(&self) -> Option<SubagentError> {
+        None
+    }
+
     /// Stable child identity.
     fn id(&self) -> &SubagentId;
 
@@ -1877,6 +1883,13 @@ impl SubagentRegistry {
                 cancellation.child_token(),
             )
             .await;
+        if let Some(error) = started
+            .handle
+            .as_ref()
+            .and_then(|handle| handle.initial_run_error())
+        {
+            return Err(error);
+        }
         Ok(started)
     }
 
@@ -2217,6 +2230,7 @@ impl AliasedHandle {
         self.record
             .update(|row| {
                 row.state = crate::TaskState::Running;
+                row.terminal_diagnostic = None;
                 if let Some(job) = job {
                     row.job_id = Some(job.to_string());
                 }
@@ -2316,6 +2330,7 @@ impl AliasedHandle {
         self.record
             .update(|row| {
                 row.state = crate::TaskState::Running;
+                row.terminal_diagnostic = None;
                 if let Some(job) = job {
                     row.job_id = Some(job.to_string());
                 }
@@ -2343,6 +2358,9 @@ impl AliasedHandle {
 }
 #[async_trait]
 impl SubagentHandle for AliasedHandle {
+    fn initial_run_error(&self) -> Option<SubagentError> {
+        self.inner.initial_run_error()
+    }
     fn id(&self) -> &SubagentId {
         &self.id
     }
@@ -2406,7 +2424,10 @@ impl SubagentHandle for AliasedHandle {
             .lock()
             .unwrap_or_else(|e| e.into_inner()) = token.clone();
         self.record
-            .update(|row| row.state = crate::TaskState::Running)
+            .update(|row| {
+                row.state = crate::TaskState::Running;
+                row.terminal_diagnostic = None;
+            })
             .map_err(task_io_error)?;
         let result = self.inner.run_mail(token).await;
         self.finish_run(

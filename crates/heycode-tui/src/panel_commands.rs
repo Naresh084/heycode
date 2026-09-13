@@ -29,9 +29,9 @@ use heycode_session::{ScheduleId, ScheduleRecord, ScheduleRule};
 /// A capability panel this shell owns and can open.
 ///
 /// Closed on purpose: a variant here is a panel that exists in
-/// [`crate::app::AppState`], not a capability heycode merely has. `/skills`,
-/// `/agents` and `/hooks` have no variant because no such panel exists yet —
-/// a command that opened an empty shell would be worse than its absence.
+/// [`crate::app::AppState`], not a capability heycode merely has. The Agents
+/// catalog is opened explicitly with `/agents providers`; bare `/agents`
+/// routes to the retained conversation browser in the interactive shell.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CapabilityPanel {
     /// MCP server management (U12) — [`crate::mcp_panel`].
@@ -40,7 +40,7 @@ pub enum CapabilityPanel {
     Plugins,
     /// Discovered instruction packs contributed by `heycode-skills`.
     Skills,
-    /// Registered delegation providers and aggregate live-child state.
+    /// Registered delegation providers and presets (`/agents providers`).
     Agents,
     /// Effect-owned lifecycle hooks and available handler kinds.
     Hooks,
@@ -83,7 +83,9 @@ impl CapabilityPanel {
             Self::Mcp => "Open or manage MCP servers",
             Self::Plugins => "Open the installed-plugin panel",
             Self::Skills => "Open the discovered-skills panel",
-            Self::Agents => "Open the delegated-agent panel",
+            Self::Agents => {
+                "Browse agent conversations; providers opens the provider/preset catalog"
+            }
             Self::Hooks => "Open the lifecycle-hooks panel",
             Self::Settings => "Open the settings browser",
             Self::Workflows => "Open workflow phases and agents",
@@ -345,7 +347,7 @@ pub(crate) fn agents_catalog_with_readiness(
     }));
     CapabilityCatalogView::new(
         CapabilityPanel::Agents,
-        "Agents",
+        "Agent providers",
         format!(
             "{} providers; {} presets; {} live continuable children",
             registry.descriptors().len(),
@@ -564,9 +566,8 @@ struct SubtaskCommand {
     unavailable: CommandAvailability,
 }
 
-/// Current-session agent inventory. This is distinct from `/agents`, which
-/// describes providers and presets; the human needs both the capability
-/// catalog and the actual admitted conversations.
+/// Text current-session inventory, complementing the `/agents` conversation
+/// browser. Provider and preset capabilities live under `/agents providers`.
 struct ListAgentsCommand {
     descriptor: CommandDescriptor,
     subagents: Option<Arc<SubagentRegistry>>,
@@ -859,9 +860,16 @@ impl Command for PanelCommand {
 
     async fn execute(&self, agent: &heycode_agent::Agent, args: &str) -> anyhow::Result<()> {
         let args = args.trim();
+        if self.panel == CapabilityPanel::Agents && args == "providers" {
+            self.bridge.request(self.panel);
+            return Ok(());
+        }
         if args.is_empty() {
             self.bridge.request(self.panel);
             return Ok(());
+        }
+        if self.panel == CapabilityPanel::Agents {
+            anyhow::bail!("usage: /agents [providers]");
         }
         if self.panel != CapabilityPanel::Mcp {
             anyhow::bail!("usage: /{}", self.panel.as_str());
@@ -970,6 +978,11 @@ pub fn panel_command(
             CommandArgument::optional("action", "enable, disable, or reconnect")?,
             CommandArgument::optional("server", "MCP server name")?,
         ]
+    } else if panel == CapabilityPanel::Agents {
+        vec![CommandArgument::optional(
+            "view",
+            "providers for the provider/preset catalog",
+        )?]
     } else {
         Vec::new()
     };

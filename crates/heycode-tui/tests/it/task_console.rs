@@ -457,8 +457,9 @@ async fn task_console_native_three_children_stream_before_settlement_then_interr
     let authority = registry.root_authority(
         heycode_agent::SubagentId::new(agent.session().lock().unwrap().id().as_str()).unwrap(),
     );
-    let source =
-        Arc::new(RegistryTaskSource::new(agent, Some(jobs.clone()), Some(registry.clone())).unwrap());
+    let source = Arc::new(
+        RegistryTaskSource::new(agent, Some(jobs.clone()), Some(registry.clone())).unwrap(),
+    );
     let mut state = AppState::new("native-fixture", root.path().into());
     state.set_task_source(source.clone());
     state.input.insert_str("preserve parent draft");
@@ -539,9 +540,12 @@ async fn task_console_native_three_children_stream_before_settlement_then_interr
     assert!(ack.contains("requested"));
     tokio::time::timeout(std::time::Duration::from_secs(15), async {
         loop {
-            if source.snapshot().unwrap().iter().any(|row| {
-                row.key == first && row.status == TaskStatus::Cancelled
-            }) {
+            if source
+                .snapshot()
+                .unwrap()
+                .iter()
+                .any(|row| row.key == first && row.status == TaskStatus::Cancelled)
+            {
                 break;
             }
             tokio::task::yield_now().await;
@@ -550,19 +554,32 @@ async fn task_console_native_three_children_stream_before_settlement_then_interr
     })
     .await
     .expect("interruption must settle without restarting queued input");
-    assert_eq!(provider.entered.load(std::sync::atomic::Ordering::SeqCst), 3);
+    assert_eq!(
+        provider.entered.load(std::sync::atomic::Ordering::SeqCst),
+        3
+    );
     assert_eq!(native.next_wakeable_message(), Some(pending.clone()));
     assert!(!native.token().is_turn_active());
     assert!(registry.child_for(&authority, &children[0]).is_some());
 
     // Explicit restoration permits resuming the exact retained occurrence.
-    assert!(registry.archive_child_for(&authority, &children[0]).unwrap());
-    assert!(registry.restore_child_for(&authority, &children[0]).unwrap());
-    assert_eq!(provider.entered.load(std::sync::atomic::Ordering::SeqCst), 3);
+    assert!(
+        registry
+            .archive_child_for(&authority, &children[0])
+            .unwrap()
+    );
+    assert!(
+        registry
+            .restore_child_for(&authority, &children[0])
+            .unwrap()
+    );
+    assert_eq!(
+        provider.entered.load(std::sync::atomic::Ordering::SeqCst),
+        3
+    );
     let child = registry.child_for(&authority, &children[0]).unwrap();
-    let resumed = tokio::spawn(async move {
-        child.run_pending(&pending, CancellationToken::new()).await
-    });
+    let resumed =
+        tokio::spawn(async move { child.run_pending(&pending, CancellationToken::new()).await });
     tokio::time::timeout(std::time::Duration::from_secs(15), async {
         while !source.output(&first, None, 128).unwrap().events.iter().any(|event| {
             matches!(&event.kind, TaskOutputKind::Text(text) if text.contains("live child text 3"))
@@ -574,19 +591,43 @@ async fn task_console_native_three_children_stream_before_settlement_then_interr
     .expect("explicit resume must consume the retained input");
     assert!(native.pending_human_messages().is_empty());
     source
-        .execute(TaskAction::Interrupt(first.clone()), CancellationToken::new())
+        .execute(
+            TaskAction::Interrupt(first.clone()),
+            CancellationToken::new(),
+        )
         .await
         .unwrap();
     let error = tokio::time::timeout(std::time::Duration::from_secs(5), resumed)
-        .await.unwrap().unwrap().unwrap_err();
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap_err();
     assert_eq!(error.code(), heycode_agent::SubagentErrorCode::Cancelled);
-    assert_eq!(provider.entered.load(std::sync::atomic::Ordering::SeqCst), 4);
-    assert_eq!(source.snapshot().unwrap().iter().find(|row| row.key == first).unwrap().status,
-        TaskStatus::Cancelled);
-    let claimed_count = native.session().lock().unwrap().events().iter().filter(|event| {
-        matches!(&event.kind, heycode_session::SessionEventKind::UserMessage { text }
+    assert_eq!(
+        provider.entered.load(std::sync::atomic::Ordering::SeqCst),
+        4
+    );
+    assert_eq!(
+        source
+            .snapshot()
+            .unwrap()
+            .iter()
+            .find(|row| row.key == first)
+            .unwrap()
+            .status,
+        TaskStatus::Cancelled
+    );
+    let claimed_count = native
+        .session()
+        .lock()
+        .unwrap()
+        .events()
+        .iter()
+        .filter(|event| {
+            matches!(&event.kind, heycode_session::SessionEventKind::UserMessage { text }
             if text == "resume alpha after interruption")
-    }).count();
+        })
+        .count();
     assert_eq!(claimed_count, 1);
     release.notify_waiters();
     tokio::time::timeout(std::time::Duration::from_secs(15), async {
@@ -1110,9 +1151,17 @@ async fn cancelled_root_preserves_queued_steer_until_explicit_resume() {
         .unwrap();
     assert_eq!(agent.next_wakeable_message(), Some(id.clone()));
     assert!(!agent.token().is_turn_active());
-    assert_eq!(provider.entered.load(std::sync::atomic::Ordering::SeqCst), 1);
-    let refused = agent.send_inbox_id_cancellable(&id, CancellationToken::new()).await;
-    assert!(refused.is_err(), "pending dispatch must not resurrect a stopped root");
+    assert_eq!(
+        provider.entered.load(std::sync::atomic::Ordering::SeqCst),
+        1
+    );
+    let refused = agent
+        .send_inbox_id_cancellable(&id, CancellationToken::new())
+        .await;
+    assert!(
+        refused.is_err(),
+        "pending dispatch must not resurrect a stopped root"
+    );
     assert_eq!(agent.next_wakeable_message(), Some(id.clone()));
     let second_cancel = CancellationToken::new();
     let second = {
@@ -2497,7 +2546,10 @@ fn parent_footer_preserves_context_and_git_across_sizes_and_settlement() {
             assert!(rendered.contains("92% left"), "{width}: {rendered}");
         }
         state.set_workspace_context(WorkspaceContextState::NotRepository);
-        assert!(text(&frame(&mut state, width, height)).contains("No Git repository"));
+        let no_git = text(&frame(&mut state, width, height));
+        assert!(!no_git.contains("No Git repository"), "{no_git}");
+        assert!(!no_git.contains("feature/agents"), "{no_git}");
+        assert!(no_git.contains("8k/100k"), "{no_git}");
     }
 }
 

@@ -262,6 +262,19 @@ impl AppState {
         }
     }
 
+    /// Route history commands before provider-catalog command dispatch.
+    pub(super) fn route_task_browser_command(&mut self, name: &str, args: &str) -> bool {
+        if !args.trim().is_empty() {
+            return false;
+        }
+        match name {
+            "agents" => self.open_task_category(TaskCategory::Agents),
+            "tasks" | "bashes" => self.open_tasks(),
+            _ => return false,
+        }
+        true
+    }
+
     /// Open a domain-specific selector from the bottom navigation.
     pub fn open_task_category(&mut self, category: TaskCategory) {
         self.task_console.restore_preview();

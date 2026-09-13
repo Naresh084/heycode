@@ -28,7 +28,11 @@ struct Asset {
 }
 
 fn version(text: &str) -> Result<(u64, u64, u64)> {
-    let parts = text.strip_prefix('v').unwrap_or(text).split('.').collect::<Vec<_>>();
+    let parts = text
+        .strip_prefix('v')
+        .unwrap_or(text)
+        .split('.')
+        .collect::<Vec<_>>();
     ensure!(
         parts.len() == 3,
         "expected a stable major.minor.patch version"
@@ -180,6 +184,54 @@ pub fn run(args: &[String]) -> Result<String> {
     })
 }
 
+/// Start a best-effort automatic update for installer-managed interactive launches.
+/// Development builds and explicitly disabled installations never contact GitHub.
+pub fn start_automatic() {
+    if std::env::var_os("HEYCODE_AUTO_UPDATE").is_some_and(|value| value == "0") {
+        return;
+    }
+    let Ok(executable) = std::env::current_exe() else {
+        return;
+    };
+    let Some(directory) = executable.parent() else {
+        return;
+    };
+    if !directory.join(".heycode-install").is_file() {
+        return;
+    }
+    let Ok(Some(home)) = heycode_config::home_root() else {
+        return;
+    };
+    let _ = std::thread::spawn(move || {
+        let checked = home.join("update-checked");
+        loop {
+            let elapsed = std::fs::metadata(&checked)
+                .and_then(|metadata| metadata.modified())
+                .ok()
+                .and_then(|time| time.elapsed().ok())
+                .map_or(3600, |age| age.as_secs());
+            if elapsed < 3600 {
+                std::thread::sleep(std::time::Duration::from_secs(3600 - elapsed));
+                continue;
+            }
+            if std::fs::create_dir_all(&home).is_err() || std::fs::write(&checked, b"").is_err() {
+                return;
+            }
+            let status = match run(&[]) {
+                Ok(message) => message,
+                Err(_) => "Automatic update could not confirm completion; another check will run later. Use heycode update for details.".to_owned(),
+            };
+            let installed = status.starts_with("Installed HeyCode ");
+            let _ = std::fs::write(home.join("update-status.txt"), status);
+            // This process still has the old version compiled in. Stop after a
+            // replacement so it cannot repeatedly reinstall and overwrite rollback.
+            if installed {
+                return;
+            }
+        }
+    });
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -222,47 +274,4 @@ mod tests {
         );
         assert!(!directory.path().join(".heycode-update.lock").exists());
     }
-}
-
-/// Start a best-effort automatic update for installer-managed interactive launches.
-/// Development builds and explicitly disabled installations never contact GitHub.
-pub fn start_automatic() {
-    if std::env::var_os("HEYCODE_AUTO_UPDATE").is_some_and(|value| value == "0") {
-        return;
-    }
-    let Ok(executable) = std::env::current_exe() else {
-        return;
-    };
-    let Some(directory) = executable.parent() else {
-        return;
-    };
-    if !directory.join(".heycode-install").is_file() {
-        return;
-    }
-    let Ok(Some(home)) = heycode_config::home_root() else {
-        return;
-    };
-    let _ = std::thread::spawn(move || {
-        let checked = home.join("update-checked");
-        loop {
-            let elapsed = std::fs::metadata(&checked).and_then(|metadata| metadata.modified()).ok()
-                .and_then(|time| time.elapsed().ok()).map_or(3600, |age| age.as_secs());
-            if elapsed < 3600 {
-                std::thread::sleep(std::time::Duration::from_secs(3600 - elapsed));
-                continue;
-            }
-            if std::fs::create_dir_all(&home).is_err() || std::fs::write(&checked, b"").is_err() {
-                return;
-            }
-            let status = match run(&[]) {
-                Ok(message) => message,
-                Err(_) => "Automatic update could not confirm completion; another check will run later. Use heycode update for details.".to_owned(),
-            };
-            let installed = status.starts_with("Installed HeyCode ");
-            let _ = std::fs::write(home.join("update-status.txt"), status);
-            // This process still has the old version compiled in. Stop after a
-            // replacement so it cannot repeatedly reinstall and overwrite rollback.
-            if installed { return; }
-        }
-    });
 }

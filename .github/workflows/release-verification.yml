@@ -28,7 +28,7 @@ jobs:
     name: Build and attest ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
-      CARGO_TARGET_DIR: ${{ runner.temp }}/heycode-dist-target
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.release-target
     permissions:
       artifact-metadata: write
       attestations: write

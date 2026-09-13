@@ -60,7 +60,7 @@
 # right thing to spend here.
 # ────────────────────────────────────────────────────────────────────────────
 
-name: Cross-platform gates (NEVER EXECUTED on CI)
+name: Cross-platform gates
 
 on:
   pull_request:

@@ -1,8 +1,13 @@
-# heycode release notes
+# HeyCode release notes
 
 ## Unreleased — 0.1.0 development
 
-This is the development changelog bundled with this build. It does not announce a published release.
+The first public release is being validated. Published versions and downloadable assets are listed on GitHub Releases.
+
+- HeyCode branding, the `heycode` executable, and the `~/.heycode` data home.
+- A pixel cat with local message reactions, idle animation, and bounded click-to-play gestures.
+- Standalone installation, version reporting, automatic background updates, and retained rollback binaries.
+- User-facing README with actual terminal captures, connection choices, MIT licensing, and release policy.
 
 - Session names support `/rename [title...]`, local title generation, and distinct names for rename operations. `/copy [number]` selects a completed answer, counting back from the latest.
 - Context details retain request identity, configuration revisions, measured cache usage, and estimated contributor breakdowns across session restart. Estimated values remain labeled.

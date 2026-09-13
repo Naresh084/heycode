@@ -45,3 +45,5 @@ auth.json
 # macOS Finder metadata
 .DS_Store
 **/.DS_Store
+
+/.release-target/

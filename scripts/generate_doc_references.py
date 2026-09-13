@@ -217,7 +217,7 @@ def command_descriptions() -> dict[str, str]:
             )
             panel_descriptions = dict(
                 re.findall(
-                    r'Self::([A-Za-z0-9_]+)\s*=>\s*"((?:[^"\\]|\\.)*)"',
+                    r'Self::([A-Za-z0-9_]+)\s*=>\s*(?:\{\s*)?"((?:[^"\\]|\\.)*)"',
                     balanced_body(text, "pub const fn description"),
                 )
             )

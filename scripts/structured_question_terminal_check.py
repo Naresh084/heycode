@@ -30,6 +30,7 @@ AGENTS = ("Atlas",)
 
 def run(binary: Path, output: Path, columns: int, rows: int, background: bool, theme: str, color: bool):
     output.mkdir(parents=True, exist_ok=True)
+    (output / "harness.py").write_bytes(Path(__file__).read_bytes())
     started = datetime.now(timezone.utc).isoformat()
     requests = []
     release = {name: threading.Event() for name in AGENTS}
@@ -235,6 +236,7 @@ def run(binary: Path, output: Path, columns: int, rows: int, background: bool, t
                 capture("child-required-priority")
                 send(b"\r", "answer required child route")
                 has("CHILD_STARTED", 60)
+                has("1 optional question", 60)
                 send(b"\x1bq", "open child optional card")
                 has("Which child review scope?", 60)
                 frame = capture("child-optional-owned-card")

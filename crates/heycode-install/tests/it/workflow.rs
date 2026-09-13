@@ -86,7 +86,7 @@ fn distribution_build_is_compact_measured_and_staged_from_its_own_profile() {
         ".github/workflows/release-verification.yml",
     ))
     .expect("release workflow");
-    assert!(workflow.contains("      CARGO_TARGET_DIR: ${{ runner.temp }}/heycode-dist-target\n"));
+    assert!(workflow.contains("      CARGO_TARGET_DIR: ${{ github.workspace }}/.release-target\n"));
     assert!(workflow.contains("cargo build --profile dist --locked -p heycode-cli"));
     assert!(!workflow.contains("cargo build --release --locked -p heycode-cli"));
     assert!(

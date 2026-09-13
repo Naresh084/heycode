@@ -279,7 +279,9 @@ def run(binary: Path, output: Path, columns: int, rows: int, background: bool, t
                 for index in range(5):
                     send(b"\r", f"inspect retained agent {index + 1}")
                     frame = read(0.4)
-                    if FAILURE in re.sub(r"\s+", "", frame):
+                    # Provider body text is deliberately redacted. Inspect the
+                    # safe classified diagnostic correlated with this agent.
+                    if "Equinox" in frame and "provider rejected the request" in frame:
                         found_failure = True
                         settled_detail = capture("provider-failure-detail")
                         assert read(1.2) == settled_detail, "Settled failure detail or duration changed without a new event"

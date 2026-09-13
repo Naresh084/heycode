@@ -67,6 +67,10 @@ heycode --version                  # Show your installed version
 - **Tools that fit your project.** Add MCP servers, skills, and plugins. Keep project configuration in `heycode.toml` and project state in `.heycode/`.
 - **A little company.** The terminal cat blinks, watches while work is running, and reacts to greetings and completed tasks. Click it for a short wave, wink, bounce, or purr. Animations can be disabled in appearance settings.
 
+![Clicking the HeyCode mascot triggers a short wave](docs/images/terminal-mascot.gif)
+
+*Click animation captured from the running terminal app.*
+
 ## Updates take care of themselves
 
 Installer-managed copies check for a newer stable release in the background when you start `heycode` and hourly while it stays open. A verified download replaces the executable for the **next launch**. Your running conversation keeps going. The previous executable is retained as `heycode.previous` alongside `heycode`.

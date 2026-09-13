@@ -3,7 +3,7 @@
 
 This page is generated from current Rust contracts. Regenerate with `python3 scripts/verify_docs.py --write`; verify with `python3 scripts/verify_docs.py`.
 
-Source digest: `0345b508eba76ff4dba404d0734a31ffe80f70098476e8325d8b6851160596ed`
+Source digest: `43020f2185aa4ddcff842fdb45e1aced0ca37ee628701361c4727da74302a1bb`
 
 Sources:
 

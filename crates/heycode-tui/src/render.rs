@@ -8074,7 +8074,7 @@ fn workspace_status(state: &AppState) -> String {
             if context.dirty { " *" } else { "" }
         ),
         WorkspaceContextState::Loading => "  Git loading…".into(),
-        WorkspaceContextState::NotRepository => "  No Git repository".into(),
+        WorkspaceContextState::NotRepository => String::new(),
         WorkspaceContextState::Unavailable(_) => "  Git unavailable".into(),
     }
 }

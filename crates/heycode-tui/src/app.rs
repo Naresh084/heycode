@@ -2,6 +2,8 @@
 
 pub mod accessibility;
 #[cfg(test)]
+mod agent_history_tests;
+#[cfg(test)]
 mod agent_receipts_tests;
 mod inbox_transcript;
 pub(crate) mod optional_questions;
@@ -6946,10 +6948,10 @@ impl AppState {
                                     q.mode == heycode_core::QuestionMode::MultipleChoice
                                 }) =>
                         {
-                            if let Some(question) = self.pending_runtime_question.as_mut() {
-                                if !question.selected_choices.insert(question.selection) {
-                                    question.selected_choices.remove(&question.selection);
-                                }
+                            if let Some(question) = self.pending_runtime_question.as_mut()
+                                && !question.selected_choices.insert(question.selection)
+                            {
+                                question.selected_choices.remove(&question.selection);
                             }
                         }
                         KeyCode::Enter => self.resolve_runtime_question(),
@@ -10962,11 +10964,9 @@ where
                     voice.command(&args, &mut state);
                     continue;
                 }
-                // The background browser already lists jobs, agents, teams and
-                // Work with their state; the reference opens that surface for
-                // `/tasks` rather than printing a one-shot job list.
-                if matches!(name.as_str(), "tasks" | "bashes") && args.trim().is_empty() {
-                    state.open_tasks();
+                // `/agents` is retained conversation history; the provider and
+                // preset catalog is an explicit `/agents providers` request.
+                if state.route_task_browser_command(&name, &args) {
                     continue;
                 }
                 match deps.commands.get(&name) {

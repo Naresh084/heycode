@@ -251,7 +251,10 @@ impl SubagentRunner {
             (result, Some(lease)) => {
                 let terminal = if cancellation.is_cancelled() {
                     crate::WorktreeOutcome::Cancelled
-                } else if result.is_ok() {
+                } else if result
+                    .as_ref()
+                    .is_ok_and(|outcome| outcome.initial_error.is_none())
+                {
                     crate::WorktreeOutcome::Success
                 } else {
                     crate::WorktreeOutcome::Failure
@@ -452,13 +455,15 @@ impl SubagentRunner {
             )
             .await?;
 
-        let text = native_report_result(&child, report)?;
+        let text = report.text.clone();
+        let initial_error = native_report_result(&child, report).err();
         self.bus.emit(UiEvent::Status {
             verb: "Forging…".to_owned(),
         });
         Ok(ChildOutcome {
             id,
             text,
+            initial_error,
             agent: child,
             authority: child_authority,
             lease: None,
@@ -488,6 +493,7 @@ fn stable_fork_boundary(session: &Session) -> ForkBoundary {
 /// Result of one child run; the agent handle stays alive so callers can
 /// either drop it (oneshot) or keep it in the registry (continuable).
 struct ChildOutcome {
+    initial_error: Option<SubagentError>,
     lease: Option<crate::GitWorktreeLease>,
     /// Durable child session id (the task_id callers quote back).
     id: SubagentId,
@@ -583,8 +589,14 @@ impl SubagentProvider for NativeSubagentProvider {
             .map_err(|error| classify(&error))?;
         let id = outcome.id;
         let handle = match request.continuation {
-            SubagentContinuation::OneShot => None,
+            SubagentContinuation::OneShot => {
+                if let Some(error) = outcome.initial_error {
+                    return Err(error);
+                }
+                None
+            }
             SubagentContinuation::Continuable => Some(Arc::new(NativeSubagentHandle {
+                initial_error: outcome.initial_error,
                 id: id.clone(),
                 label: request.label().to_owned(),
                 agent: outcome.agent,
@@ -602,6 +614,7 @@ impl SubagentProvider for NativeSubagentProvider {
 
 /// One live continuable native child.
 struct NativeSubagentHandle {
+    initial_error: Option<SubagentError>,
     lease: tokio::sync::Mutex<Option<crate::GitWorktreeLease>>,
     id: SubagentId,
     label: String,
@@ -611,6 +624,10 @@ struct NativeSubagentHandle {
 
 #[async_trait]
 impl SubagentHandle for NativeSubagentHandle {
+    fn initial_run_error(&self) -> Option<SubagentError> {
+        self.initial_error.clone()
+    }
+
     fn id(&self) -> &SubagentId {
         &self.id
     }
@@ -788,18 +805,26 @@ fn native_report_result(agent: &Agent, report: crate::TurnReport) -> Result<Stri
     if code == SubagentErrorCode::Failed
         && let Some(record) = &agent.task_record
     {
+        let mut partial = report.text;
+        if partial.len() > 32 * 1024 {
+            let mut end = 32 * 1024;
+            while !partial.is_char_boundary(end) {
+                end -= 1;
+            }
+            partial.truncate(end);
+        }
         record
-            .finish_with_diagnostic(
-                crate::TaskState::Failed,
-                &message,
-                Some(crate::TaskDiagnostic {
+            .update(|row| {
+                // The retained handle and its invocation owner still have to
+                // settle; publish the diagnosis without ending their lease.
+                row.terminal_diagnostic = Some(crate::TaskDiagnostic {
                     message: message.clone(),
                     code: Some(report.reason.to_owned()),
                     stage: Some("native_turn".into()),
-                    partial_result: (!report.text.is_empty()).then_some(report.text),
+                    partial_result: (!partial.is_empty()).then_some(partial),
                     ..crate::TaskDiagnostic::default()
-                }),
-            )
+                });
+            })
             .map_err(|error| SubagentError::new(SubagentErrorCode::Failed, error.to_string()))?;
     }
     Err(SubagentError::new(code, message))
@@ -808,6 +833,23 @@ fn native_report_result(agent: &Agent, report: crate::TurnReport) -> Result<Stri
 fn classify(error: &anyhow::Error) -> SubagentError {
     if let Some(error) = error.downcast_ref::<SubagentError>() {
         return error.clone();
+    }
+    if let Some(llm) = error.downcast_ref::<heycode_llm::LlmError>() {
+        let mut facts = vec![llm.class().as_str().to_owned()];
+        if let Some(failure) = llm.provider_failure() {
+            if let Some(status) = failure.status() {
+                facts.push(format!("HTTP {status}"));
+            }
+            if let Some(code) = failure.code() {
+                facts.push(code.as_str().to_owned());
+            }
+        } else if let heycode_llm::LlmError::Http { status, .. } = llm {
+            facts.push(format!("HTTP {status}"));
+        }
+        return SubagentError::new(
+            SubagentErrorCode::Failed,
+            format!("{llm} [{}]", facts.join(", ")),
+        );
     }
     let text = error.to_string();
     let code = if text.contains("depth limit") {

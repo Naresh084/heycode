@@ -34,7 +34,7 @@
 # this file is not in a position to make.
 # ────────────────────────────────────────────────────────────────────────────
 
-name: Documentation lane (NEVER EXECUTED on CI)
+name: Documentation lane
 
 "on":
   pull_request:

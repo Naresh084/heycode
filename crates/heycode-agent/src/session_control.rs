@@ -732,18 +732,17 @@ impl Agent {
                 .iter()
                 .find(|q| q.id.as_str() == id)
                 .ok_or_else(|| anyhow::anyhow!("unknown optional question"))?;
-            if let crate::QuestionAnswer::Selected(labels) = value {
-                if question.mode != crate::QuestionMode::MultipleChoice
+            if let crate::QuestionAnswer::Selected(labels) = value
+                && (question.mode != crate::QuestionMode::MultipleChoice
                     || labels.is_empty()
                     || labels.iter().any(|label| !question.options.contains(label))
                     || labels
                         .iter()
                         .collect::<std::collections::HashSet<_>>()
                         .len()
-                        != labels.len()
-                {
-                    anyhow::bail!("selected answers do not match the optional question");
-                }
+                        != labels.len())
+            {
+                anyhow::bail!("selected answers do not match the optional question");
             }
             if already_answered(&session, &question.id) {
                 anyhow::bail!("question already answered");
@@ -1072,20 +1071,44 @@ impl heycode_tools::Tool for AsyncQuestionTool {
         args: serde_json::Value,
         cx: &heycode_tools::ToolCtx,
     ) -> Result<serde_json::Value, heycode_tools::ToolError> {
-        // Read old flat string options, but advertise the shared structured schema.
-        let mut args = args;
-        if args.get("questions").is_none()
-            && let Some(options) = args
-                .get_mut("options")
-                .and_then(serde_json::Value::as_array_mut)
-        {
-            for option in options {
-                if let Some(label) = option.as_str() {
-                    *option = serde_json::json!({"label":label});
-                }
+        let (questions, legacy) = if args.get("questions").is_none() {
+            #[derive(Deserialize)]
+            #[serde(deny_unknown_fields)]
+            struct LegacyQuestion {
+                question: String,
+                #[serde(default)]
+                options: Vec<String>,
             }
-        }
-        let (questions, legacy) = crate::interactive_question::parse_questions(args)?;
+            let legacy: LegacyQuestion = serde_json::from_value(args).map_err(|_| {
+                heycode_tools::ToolError::new("invalid optional question arguments")
+            })?;
+            validate_question(&legacy.question, &legacy.options)
+                .map_err(|error| heycode_tools::ToolError::new(error.to_string()))?;
+            let mode = if legacy.options.is_empty() {
+                crate::QuestionMode::FreeText
+            } else {
+                crate::QuestionMode::SingleChoice
+            };
+            (
+                vec![crate::QuestionSpec {
+                    id: "q1".into(),
+                    question: legacy.question,
+                    header: None,
+                    mode,
+                    options: legacy
+                        .options
+                        .into_iter()
+                        .map(|label| crate::QuestionChoice {
+                            label,
+                            description: None,
+                        })
+                        .collect(),
+                }],
+                true,
+            )
+        } else {
+            crate::interactive_question::parse_questions(args)?
+        };
         if cx.cancellation.is_cancelled() {
             return Err(heycode_tools::ToolError::new(
                 "optional question cancelled before admission",
@@ -1362,5 +1385,26 @@ mod tests {
             result["questions"][0]["question_id"],
             pending[0].id.as_str()
         );
+    }
+    #[tokio::test]
+    async fn legacy_optional_single_suggestion_remains_supported() {
+        let root = tempfile::tempdir().unwrap();
+        let session = Arc::new(std::sync::Mutex::new(Session::create(root.path()).unwrap()));
+        let owner = QuestionOwner {
+            session: session.clone(),
+            bus: heycode_core::EventBus::default(),
+        };
+        let tool = AsyncQuestionTool(std::sync::Weak::new());
+        let result = owner
+            .scope(tool.run(
+                serde_json::json!({"question":"Format?","options":["Text"]}),
+                &heycode_tools::ToolCtx::default(),
+            ))
+            .await
+            .unwrap();
+        assert!(result["question_id"].is_string());
+        let pending = read_state(&session.lock().unwrap()).unwrap().questions;
+        assert_eq!(pending[0].options, vec!["Text"]);
+        assert_eq!(pending[0].mode, crate::QuestionMode::SingleChoice);
     }
 }

@@ -3054,17 +3054,48 @@ async fn explicit_failed_native_retry_preserves_error_and_creates_another_run() 
 #[tokio::test]
 async fn native_token_limit_retains_partial_output_without_claiming_success() {
     let root = tempfile::tempdir().unwrap();
-    let mut ctx = world(vec![vec![StreamChunk::TextDelta("PARTIAL_FINDING".into()), StreamChunk::Finish(heycode_llm::FinishReason::Length)]], root.path().to_path_buf(), 3);
+    let mut ctx = world(
+        vec![vec![
+            StreamChunk::TextDelta("PARTIAL_FINDING".into()),
+            StreamChunk::Finish(heycode_llm::FinishReason::Length),
+        ]],
+        root.path().to_path_buf(),
+        3,
+    );
     let (registry, authority) = native_owner(&ctx);
-    let (id, job) = registry.start_background_task(heycode_agent::SubagentRequest::with_authority("Limited scout", "trace the runtime", heycode_agent::SubagentSeed::Fresh, heycode_agent::SubagentContinuation::Continuable, authority.clone()).unwrap(), heycode_session::InboxDelivery::Inject).unwrap();
-    let jobs = ctx.get::<Arc<heycode_agent::JobRegistry>>(heycode_agent::SERVICE_JOBS).unwrap();
-    assert_eq!(jobs.wait_for_settlement(&job).await.unwrap(), heycode_agent::JobOutcome::Failed);
-    let snapshot = registry.task_snapshots_for(&authority).into_iter().find(|s| s.id == id.as_str()).unwrap();
+    let (id, job) = registry
+        .start_background_task(
+            heycode_agent::SubagentRequest::with_authority(
+                "Limited scout",
+                "trace the runtime",
+                heycode_agent::SubagentSeed::Fresh,
+                heycode_agent::SubagentContinuation::Continuable,
+                authority.clone(),
+            )
+            .unwrap(),
+            heycode_session::InboxDelivery::Inject,
+        )
+        .unwrap();
+    let jobs = ctx
+        .get::<Arc<heycode_agent::JobRegistry>>(heycode_agent::SERVICE_JOBS)
+        .unwrap();
+    assert_eq!(
+        jobs.wait_for_settlement(&job).await.unwrap(),
+        heycode_agent::JobOutcome::Failed
+    );
+    let snapshot = registry
+        .task_snapshots_for(&authority)
+        .into_iter()
+        .find(|s| s.id == id.as_str())
+        .unwrap();
     assert_eq!(snapshot.state, heycode_agent::TaskState::Failed);
     let diagnostic = snapshot.terminal_diagnostic.unwrap();
     assert_eq!(diagnostic.code.as_deref(), Some("max_tokens"));
-    assert_eq!(diagnostic.partial_result.as_deref(), Some("PARTIAL_FINDING"));
+    assert_eq!(
+        diagnostic.partial_result.as_deref(),
+        Some("PARTIAL_FINDING")
+    );
     assert!(diagnostic.message.contains("max_tokens"));
-    assert!(!registry.retry_available_for(&authority, &id));
+    assert!(registry.retry_available_for(&authority, &id));
     ctx.shutdown();
 }

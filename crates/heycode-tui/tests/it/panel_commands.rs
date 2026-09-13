@@ -874,7 +874,13 @@ async fn agents_and_hooks_commands_open_their_attached_read_only_catalogs() {
     ] {
         let command = world.commands.get(name).unwrap().unwrap();
         assert!(command.availability().is_available());
-        command.execute(&world.agent, "").await.unwrap();
+        command
+            .execute(
+                &world.agent,
+                if name == "agents" { "providers" } else { "" },
+            )
+            .await
+            .unwrap();
         let requested = state.take_panel_open_request().expect("panel request");
         assert_eq!(requested, expected);
         state.open_capability_panel(requested);
@@ -1095,7 +1101,7 @@ async fn agents_readiness_command_emits_missing_auth_unknown_ready_and_capabilit
         .get("agents")
         .unwrap()
         .unwrap()
-        .execute(&world.agent, "")
+        .execute(&world.agent, "providers")
         .await
         .unwrap();
     let requested = state.take_panel_open_request().unwrap();
@@ -1218,4 +1224,20 @@ async fn agents_readiness_timeout_is_unknown_in_emitted_output() {
             .iter()
             .all(tokio_util::sync::CancellationToken::is_cancelled)
     );
+}
+
+#[tokio::test]
+async fn agents_providers_keeps_catalog_explicit_and_rejects_unknown_views() {
+    let world = agent_world();
+    let command = world.commands.get("agents").unwrap().unwrap();
+    assert_eq!(command.descriptor().synopsis(), "/agents [view]");
+    command.execute(&world.agent, "providers").await.unwrap();
+    assert_eq!(world.bridge.take(), Some(CapabilityPanel::Agents));
+    assert!(world.bridge.take().is_none());
+    let error = command
+        .execute(&world.agent, "missing-view")
+        .await
+        .unwrap_err();
+    assert!(error.to_string().contains("/agents [providers]"));
+    assert!(world.bridge.take().is_none());
 }
