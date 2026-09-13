@@ -1,0 +1,47 @@
+[package]
+name = "heycode-extension-host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+heycode-agent.workspace = true
+heycode-core.workspace = true
+heycode-config.workspace = true
+heycode-settings.workspace = true
+heycode-settings-file.workspace = true
+heycode-prompt.workspace = true
+heycode-trust.workspace = true
+heycode-credentials.workspace = true
+heycode-exec.workspace = true
+heycode-extensions.workspace = true
+heycode-hooks.workspace = true
+heycode-http.workspace = true
+heycode-llm.workspace = true
+heycode-mcp.workspace = true
+heycode-skills.workspace = true
+heycode-tools.workspace = true
+heycode-ui.workspace = true
+async-trait.workspace = true
+anyhow.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+serde-saphyr = { version = "1.2", default-features = false, features = ["deserialize"] }
+tempfile.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+uuid.workspace = true
+wasmtime.workspace = true
+wasmtime-wasi.workspace = true
+
+[dev-dependencies]
+base64.workspace = true
+tempfile.workspace = true
+heycode-trust.workspace = true
+
+[lints]
+workspace = true

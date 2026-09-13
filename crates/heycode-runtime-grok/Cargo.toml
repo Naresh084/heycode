@@ -1,0 +1,20 @@
+[package]
+name = "heycode-runtime-grok"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+heycode-core = { workspace = true }
+heycode-exec = { workspace = true }
+heycode-llm = { workspace = true }
+heycode-runtime = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tempfile = { workspace = true }
+futures = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,9 @@
+mod catalog;
+mod credential;
+mod endpoint;
+mod inference;
+mod mcp_bundle;
+mod profile;
+mod report;
+mod support;
+mod web_search;

@@ -1,0 +1,15 @@
+[package]
+name = "heycode-credentials-env"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+heycode-core = { workspace = true }
+heycode-credentials = { workspace = true }
+
+[dev-dependencies]
+heycode-settings = { workspace = true }
+
+[lints]
+workspace = true

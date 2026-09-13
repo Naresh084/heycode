@@ -1,0 +1,35 @@
+[package]
+name = "heycode-status"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+heycode-core = { workspace = true }
+heycode-agent = { workspace = true }
+heycode-doctor = { workspace = true }
+heycode-exec = { workspace = true }
+heycode-prompt = { workspace = true }
+heycode-settings = { workspace = true }
+heycode-session = { workspace = true }
+heycode-llm = { workspace = true }
+heycode-web = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+atomic-write-file = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+
+heycode-config = { workspace = true }
+
+[dev-dependencies]
+heycode-native-tools = { workspace = true }
+heycode-tools = { workspace = true }
+heycode-web = { workspace = true }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

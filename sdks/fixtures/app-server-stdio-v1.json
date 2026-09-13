@@ -1,0 +1,51 @@
+{
+  "transportVersion": 1,
+  "request": {
+    "kind": "request",
+    "operation": 3,
+    "request": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "method": "turn/start",
+      "params": {
+        "sessionId": "session-1",
+        "text": "hello",
+        "attachments": []
+      }
+    }
+  },
+  "cancel": {
+    "kind": "cancel",
+    "operation": 3
+  },
+  "notification": {
+    "kind": "notification",
+    "operation": 3,
+    "notification": {
+      "jsonrpc": "2.0",
+      "method": "session/event",
+      "params": {
+        "sessionId": "session-1",
+        "sequence": 40,
+        "event": {
+          "type": "permission_requested",
+          "request_id": "permission-7",
+          "action": "Run fixture",
+          "detail": "Exact IDE choice required"
+        }
+      }
+    }
+  },
+  "response": {
+    "kind": "response",
+    "operation": 3,
+    "response": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "result": {
+        "turnId": "turn-1",
+        "reason": "stop"
+      }
+    }
+  }
+}

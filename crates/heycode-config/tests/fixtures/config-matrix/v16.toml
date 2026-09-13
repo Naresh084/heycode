@@ -1,0 +1,4 @@
+schema_version = 16
+# Q17 saved schema 16 configuration
+[ui]
+accent = "matrix-v16"

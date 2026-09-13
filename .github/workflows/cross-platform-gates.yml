@@ -1,0 +1,189 @@
+# Q07 cross-platform gates: the deterministic workspace gates on all three
+# supported platforms.
+#
+# ────────────────────────────────────────────────────────────────────────────
+# THIS WORKFLOW HAS NEVER RUN ON GITHUB ACTIONS. No push, pull request, or
+# dispatch in this repository has executed it, so it is not evidence that the
+# gates pass on any hosted runner.
+#
+# What IS verified, locally, on 2026-08-31 with rustc 1.97.1:
+#   * macOS aarch64 is the development host; the gates below are the gates run
+#     here per-crate throughout development.
+#   * `cargo check --target x86_64-unknown-linux-gnu --all-targets` passes for
+#     heycode-core, -exec, -trust, -attachments, -extensions, -sandbox, -session,
+#     -config, -credentials-keychain.
+#   * `cargo check --target x86_64-pc-windows-gnu --all-targets` passes for
+#     heycode-core, -exec, -trust, -attachments, -sandbox, -session, -config,
+#     -credentials-keychain — and FAILED for heycode-extensions, which is a real
+#     defect this cross-check found (see "Known Windows constraints" below).
+#
+# What is NOT verified and why:
+#   * Cross-checking is not compiling, linking, or running. A `cargo check`
+#     that passes proves the code type-checks for a target; it does not prove
+#     the tests pass there.
+#   * Several crates could not be cross-checked at all from this host because
+#     `ring` (via rustls) needs a target C compiler that is not installed:
+#     heycode-skills, heycode-runtime-claude, heycode-runtime-codex, and everything
+#     downstream of heycode-http. Those are BLOCKED, not passing.
+#   * The Windows cross-check used the `-gnu` target because that is what is
+#     installed here; the runner below uses `-msvc`. The two differ in linking
+#     and ABI, which `check` does not exercise anyway, but a `-gnu` check is
+#     not an `-msvc` guarantee.
+#
+# Known Windows constraints — read before diagnosing a red Windows job:
+#   * The content-addressed plugin cache in heycode-extensions is UNIX-ONLY BY
+#     DESIGN. `try_acquire_file_lock`, `try_acquire_existing_file_lock`,
+#     `remove_if_owned`, and all of cache_fs.rs return
+#     `PackageCacheError::UnsupportedSecurity` off-unix, because the cache
+#     relies on inode, nlink, and flock guarantees that do not hold there. It
+#     fails closed on purpose. A Windows job therefore does not gate that code
+#     — it gates that the crate compiles and that its portable tests pass.
+#     Do not "fix" a Windows failure by making the cache pretend to work.
+#   * GOTCHAS #155: the first execution of a newly written binary costs 11-23s
+#     on the development host, and `heycode-runtime-claude`'s VERSION_TIMEOUT is
+#     5s, so a good binary can be reported unavailable. Anti-malware scanning
+#     on a Windows runner makes this MORE likely, not less. If the first red
+#     build here is a runtime-availability test, suspect this before suspecting
+#     the code. The timeout is deliberately NOT raised for CI: a gate that
+#     passes only because it was given a longer deadline than the product
+#     gives its users is not testing the product.
+#
+# Deliberately not path-filtered. The three workflows beside this one provide
+# path-filtered sandbox-runtime lanes for E11/E13 and invoke their exact modules
+# through heycode-sandbox's consolidated integration target `main`. This workflow
+# also runs the whole real target natively before the general gate, and must see
+# every change. Definitions remain non-evidence until a hosted run is observed.
+#
+# Deliberately no cache action. Adding one means pinning a third-party action
+# by SHA, and an unverified SHA in a workflow that has never run is a claim
+# this file is not in a position to make. The cost is build time, which is the
+# right thing to spend here.
+# ────────────────────────────────────────────────────────────────────────────
+
+name: Cross-platform gates (NEVER EXECUTED on CI)
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-platform-gates-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.97.1
+  # Deliberately no global `RUSTFLAGS: -D warnings`. RUSTFLAGS applies to
+  # dependencies too, so one warning in one of 400+ third-party crates would
+  # fail this gate for a reason no one here can fix. Warnings in OUR code are
+  # already denied: the workspace lint table sets unsafe_code = forbid and
+  # denies unwrap_used, expect_used, panic, dbg_macro, unimplemented,
+  # print_stdout and print_stderr, and the clippy step below adds -D warnings
+  # for the workspace targets it lints.
+
+jobs:
+  # Formatting is platform-independent, so it runs once rather than three
+  # times. Running it per-platform would triple the cost to re-answer a
+  # question whose answer cannot differ.
+  format:
+    name: Formatting
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component rustfmt
+          rustup default "$RUST_TOOLCHAIN"
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+  gates:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      # One platform failing must not hide the other two. Knowing that Windows
+      # alone is red is a different diagnosis from knowing all three are.
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x86_64
+            runner: ubuntu-24.04
+          - name: macOS aarch64
+            runner: macos-15
+          - name: Windows x86_64
+            runner: windows-2022
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pinned Rust toolchain (unix)
+        if: runner.os != 'Windows'
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy
+          rustup default "$RUST_TOOLCHAIN"
+
+      - name: Install pinned Rust toolchain (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          rustup toolchain install $env:RUST_TOOLCHAIN --profile minimal --component clippy
+          rustup default $env:RUST_TOOLCHAIN
+
+      - name: Install Linux sandbox runtime prerequisite
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends bubblewrap
+          test "$(command -v bwrap)" = /usr/bin/bwrap
+
+      - name: Record the toolchain actually in use
+        run: |
+          rustc --version --verbose
+          cargo --version
+
+      # heycode-sandbox uses one consolidated integration target (`tests/main.rs`).
+      # Running the whole target on each native runner selects the matching
+      # Landlock/bwrap, Seatbelt, or Windows Job Object module through cfg and
+      # also exercises the portable path/escape matrix. This step comes before
+      # the workspace build so an unrelated compile failure cannot erase the
+      # platform observation from the log; either failure still leaves the job
+      # red. Some cells deliberately confirm Unsupported or a documented
+      # limitation (notably Seatbelt's pre-existing hard-link alias), so green
+      # means the implementation matches its claims, not that every platform
+      # supplies restrictive confinement.
+      - name: Run the native sandbox truth and path attack matrix
+        run: cargo test --locked -p heycode-sandbox --test main -- --nocapture
+
+      # `--locked` is the determinism half of this gate. Without it a
+      # dependency resolving differently on one runner turns a reproducible
+      # gate into three unrelated builds that happen to share a name.
+      - name: Lint the workspace
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
+
+      - name: Run the workspace test suite
+        if: ${{ !cancelled() }}
+        run: cargo test --locked --workspace --all-targets --no-fail-fast
+
+      # `--all-targets` above excludes doctests — verified empirically, not
+      # assumed: `cargo test -p heycode-core --all-targets` emits no `Doc-tests`
+      # section, `cargo test -p heycode-core --doc` does. Without this step the
+      # workspace's doctests would be silently ungated, including two
+      # `compile_fail` blocks, which assert that a misuse does NOT compile.
+      # Those are exactly the assertions whose silent loss would go unnoticed:
+      # a `compile_fail` test that never runs cannot fail.
+      - name: Run doctests
+        if: ${{ !cancelled() }}
+        run: cargo test --locked --workspace --doc

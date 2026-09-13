@@ -1,0 +1,91 @@
+name: Publish release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            platform: macos-aarch64
+          - runner: macos-15-intel
+            platform: macos-x86_64
+          - runner: ubuntu-24.04
+            platform: linux-x86_64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: rustup toolchain install 1.97.1 --profile minimal && rustup default 1.97.1
+      - name: Require matching stable version tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml","rb"))["workspace"]["package"]["version"])')
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$GITHUB_REF" = "refs/tags/v$version"
+      - name: Test distribution and terminal behavior
+        run: cargo test --locked -p heycode-config -p heycode-install -p heycode-tui -p heycode-cli --all-targets
+      - name: Build standalone executable
+        run: cargo build --locked --profile dist -p heycode-cli
+      - name: Check fresh-home executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HEYCODE_HOME="$RUNNER_TEMP/heycode-smoke"
+          mkdir -p "$HEYCODE_HOME"
+          target/dist/heycode --version
+          target/dist/heycode --help
+          target/dist/heycode run --fake --no-background --trust-workspace 'Say hello' > "$RUNNER_TEMP/smoke.txt"
+          test -s "$RUNNER_TEMP/smoke.txt"
+      - name: Stage executable
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          cp target/dist/heycode artifacts/heycode-${{ matrix.platform }}
+      - name: Attest build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: artifacts/heycode-${{ matrix.platform }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: heycode-${{ matrix.platform }}
+          path: artifacts/*
+          if-no-files-found: error
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: heycode-*
+          path: artifacts
+          merge-multiple: true
+      - name: Publish verified binaries and checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd artifacts
+          sha256sum heycode-* > SHA256SUMS
+          cp ../install.sh .
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --verify-tag --draft --title "HeyCode $GITHUB_REF_NAME" --generate-notes \
+            heycode-* SHA256SUMS install.sh
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false --latest

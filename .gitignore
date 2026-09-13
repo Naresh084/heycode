@@ -1,0 +1,47 @@
+# Build products and downloaded dependencies (including nested harnesses)
+target/
+**/node_modules/
+/sdks/typescript/dist
+*.vsix
+
+# Local experiments, generated reports and captured sessions/screenshots.
+# Keep source, docs and synthetic test fixtures tracked; review future public
+# brand assets separately instead of globally excluding every image format.
+/tmp/
+/output/
+/docs/audits/assets/
+/ElasticUMA-paper.pdf
+
+# Python environments and caches
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local credentials and runtime state; templates remain publishable.
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+.heycode/
+.dshx/
+credentials.toml
+credentials.legacy.bak
+auth.json
+*.key
+*.pem
+
+# Editor temporary files
+*.swp
+*.swo
+*~
+
+# macOS Finder metadata
+.DS_Store
+**/.DS_Store

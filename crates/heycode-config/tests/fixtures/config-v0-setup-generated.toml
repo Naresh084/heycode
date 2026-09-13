@@ -1,0 +1,21 @@
+# Written by the original line-oriented setup wizard.
+[profile]
+plugins = [
+  "session",
+  "prompt",
+  "tools",
+  "llm",
+  "approval",
+  "commands",
+  "agent",
+  "tui",
+]
+
+[llm]
+provider = "openrouter"
+model = "anthropic/claude-sonnet-4"
+
+[tools]
+bash_timeout_ms = 30000
+read_max_bytes = 262144
+read_max_lines = 2000

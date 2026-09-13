@@ -1,0 +1,44 @@
+schema_version = 1
+id = "acme/code-quality"
+name = "Code Quality"
+version = "1.2.3-beta.1+build.7"
+description = "Review code with the Acme quality workflow."
+license = "MIT OR Apache-2.0"
+default_enabled = false
+configuration_schema = "schemas/config.schema.json"
+requested_permissions = ["filesystem_read", "network_access", "credential_use"]
+platforms = [
+  { os = "macos", architecture = "aarch64" },
+  { os = "linux", architecture = "x86_64" },
+]
+dependencies = [
+  { id = "acme/shared", minimum_version = "1.0.0", maximum_version_exclusive = "2.0.0", optional = false },
+]
+conflicts = ["legacy/code-quality"]
+
+[api]
+minimum = 1
+maximum = 2
+
+[source]
+kind = "https"
+locator = "https://plugins.example.test/acme/code-quality.tar.zst"
+checksum = "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+signature = { algorithm = "ed25519", key_id = "acme/releases", value = "YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYQ==" }
+update_channel = "stable"
+
+[authentication]
+policy = "required"
+credentials = [{ reference = "acme/code-quality/api", kind = "api-key" }]
+
+[[contributions]]
+kind = "skill"
+id = "review"
+path = "skills/review/SKILL.md"
+exposure = { mode = "namespaced" }
+
+[[contributions]]
+kind = "command"
+id = "quality"
+path = "commands/quality.toml"
+exposure = { mode = "namespaced" }

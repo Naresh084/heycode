@@ -1,0 +1,13 @@
+{
+  "role": "assistant",
+  "content": [
+    {
+      "type": "thinking",
+      "thinking": "The tool returned 24℃ and sunny, so I can answer directly now."
+    },
+    {
+      "type": "text",
+      "text": "It is 24℃ and sunny in San Francisco."
+    }
+  ]
+}

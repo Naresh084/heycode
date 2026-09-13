@@ -1,0 +1,105 @@
+[package]
+name = "heycode-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "heycode_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "heycode"
+path = "src/main.rs"
+
+[dependencies]
+sha2.workspace = true
+url.workspace = true
+async-trait = { workspace = true }
+heycode-provider-compatible.workspace = true
+heycode-core = { workspace = true }
+heycode-attachments = { workspace = true }
+heycode-doctor = { workspace = true }
+heycode-catalog-file = { workspace = true }
+heycode-provider-deepseek = { workspace = true }
+heycode-provider-anthropic = { workspace = true }
+heycode-provider-openrouter = { workspace = true }
+heycode-runtime = { workspace = true }
+heycode-runtime-claude = { workspace = true }
+heycode-runtime-codex = { workspace = true }
+heycode-runtime-deepseek-harness = { workspace = true }
+heycode-runtime-opencode = { workspace = true }
+heycode-runtime-grok = { workspace = true }
+heycode-exec = { workspace = true }
+heycode-http = { workspace = true }
+heycode-credentials = { workspace = true }
+heycode-credentials-command = { workspace = true }
+heycode-credentials-env = { workspace = true }
+heycode-credentials-file = { workspace = true }
+heycode-session = { workspace = true }
+heycode-prompt = { workspace = true }
+heycode-llm = { workspace = true }
+heycode-tools = { workspace = true }
+heycode-trust = { workspace = true }
+heycode-agent = { workspace = true }
+heycode-app-server = { workspace = true }
+heycode-init = { workspace = true }
+heycode-install = { workspace = true }
+heycode-routing = { workspace = true }
+heycode-authorization = { workspace = true }
+heycode-authorization-api-key = { workspace = true }
+heycode-config = { workspace = true }
+heycode-settings = { workspace = true }
+heycode-settings-file = { workspace = true }
+heycode-status = { workspace = true }
+heycode-mcp = { workspace = true }
+heycode-extensions = { workspace = true }
+heycode-extension-host = { workspace = true }
+heycode-provider-openai = { workspace = true }
+heycode-provider-openai-compatible = { workspace = true }
+heycode-provider-lmstudio = { workspace = true }
+heycode-authorization-aws = { workspace = true }
+heycode-authorization-gcp = { workspace = true }
+heycode-telemetry = { workspace = true }
+heycode-telemetry-otlp = { workspace = true }
+heycode-hooks = { workspace = true }
+heycode-provider-google = { workspace = true }
+heycode-provider-zai = { workspace = true }
+heycode-provider-minimax = { workspace = true }
+heycode-provider-aws = { workspace = true }
+heycode-provider-azure = { workspace = true }
+heycode-native-tools = { workspace = true }
+heycode-onboarding = { workspace = true }
+heycode-skills = { workspace = true }
+heycode-sandbox = { workspace = true }
+heycode-tui = { workspace = true }
+heycode-ui = { workspace = true }
+heycode-web = { workspace = true }
+anyhow = { workspace = true }
+base64 = { workspace = true }
+atomic-write-file = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["io-std"] }
+tokio-util = { workspace = true }
+uuid = { workspace = true }
+dirs = { workspace = true }
+
+crossterm = { workspace = true }
+
+toml = { workspace = true }
+
+futures = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+portable-pty = "0.9.0"
+vt100 = "0.15.2"
+nix = { workspace = true, features = ["process", "signal", "poll", "term"] }
+
+[dev-dependencies]
+heycode-live-artifact = { workspace = true }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

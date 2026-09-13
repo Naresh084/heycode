@@ -1,0 +1,24 @@
+[package]
+name = "heycode-wasi-guest-fixture"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = "=0.61.1"
+
+[features]
+default = []
+scoped = []
+
+[workspace]
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

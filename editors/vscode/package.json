@@ -1,0 +1,80 @@
+{
+  "name": "heycode-vscode",
+  "displayName": "heycode",
+  "description": "Run heycode sessions through the stable local app-server v1 protocol.",
+  "version": "0.1.0",
+  "publisher": "heycode",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Naresh084/heycode.git",
+    "directory": "editors/vscode"
+  },
+  "type": "commonjs",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "main": "./dist/extension.cjs",
+  "activationEvents": [
+    "onCommand:heycode.startSession",
+    "onCommand:heycode.resumeSession",
+    "onCommand:heycode.sendMessage",
+    "onCommand:heycode.cancelTurn",
+    "onCommand:heycode.closeSession",
+    "onCommand:heycode.showOutput"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "heycode.startSession", "title": "heycode: Start Session" },
+      { "command": "heycode.resumeSession", "title": "heycode: Resume Session" },
+      { "command": "heycode.sendMessage", "title": "heycode: Send Message" },
+      { "command": "heycode.cancelTurn", "title": "heycode: Cancel Turn" },
+      { "command": "heycode.closeSession", "title": "heycode: Close Session" },
+      { "command": "heycode.showOutput", "title": "heycode: Show Output" }
+    ],
+    "configuration": {
+      "title": "heycode",
+      "type": "object",
+      "properties": {
+        "heycode.executablePath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Absolute path to the heycode executable. The extension launches it directly without a shell."
+        },
+        "heycode.hostArguments": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["app-server", "--stdio-v1"],
+          "scope": "machine",
+          "description": "Exact arguments placed before the extension-owned workspace and optional resume arguments."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build:sdk": "npm --prefix ../../sdks/typescript run build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "npm run build:sdk && npm run typecheck && node scripts/build.mjs",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "test:host": "npm run build && node scripts/run-extension-host-tests.mjs",
+    "test:installed-host": "npm run package && node scripts/run-installed-host-journey.mjs",
+    "vscode:prepublish": "npm run build",
+    "package": "vsce package --out dist/heycode-vscode-0.1.0.vsix"
+  },
+  "devDependencies": {
+    "@heycode/sdk": "file:../../sdks/typescript",
+    "@types/node": "24.13.3",
+    "@types/vscode": "1.100.0",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "3.9.2",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  }
+}

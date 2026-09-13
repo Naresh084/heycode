@@ -1,0 +1,182 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/Naresh084/heycode"
+
+[workspace.dependencies]
+heycode-provider-compatible = { path = "crates/heycode-provider-compatible" }
+# internal crates — the only allowed cross-crate edges
+heycode-code-mode = { path = "crates/heycode-code-mode" }
+heycode-core = { path = "crates/heycode-core" }
+heycode-sdk = { path = "crates/heycode-sdk" }
+heycode-doctor = { path = "crates/heycode-doctor" }
+heycode-exec = { path = "crates/heycode-exec" }
+heycode-extensions = { path = "crates/heycode-extensions" }
+heycode-extension-host = { path = "crates/heycode-extension-host" }
+heycode-http = { path = "crates/heycode-http" }
+heycode-session = { path = "crates/heycode-session" }
+heycode-skills = { path = "crates/heycode-skills" }
+heycode-prompt = { path = "crates/heycode-prompt" }
+heycode-llm = { path = "crates/heycode-llm" }
+heycode-mcp = { path = "crates/heycode-mcp" }
+heycode-native-tools = { path = "crates/heycode-native-tools" }
+heycode-onboarding = { path = "crates/heycode-onboarding" }
+heycode-tools = { path = "crates/heycode-tools" }
+heycode-trust = { path = "crates/heycode-trust" }
+heycode-agent = { path = "crates/heycode-agent" }
+heycode-app-server = { path = "crates/heycode-app-server" }
+heycode-attachments = { path = "crates/heycode-attachments" }
+heycode-init = { path = "crates/heycode-init" }
+heycode-routing = { path = "crates/heycode-routing" }
+heycode-authorization = { path = "crates/heycode-authorization" }
+heycode-authorization-api-key = { path = "crates/heycode-authorization-api-key" }
+heycode-authorization-aws = { path = "crates/heycode-authorization-aws" }
+heycode-authorization-gcp = { path = "crates/heycode-authorization-gcp" }
+heycode-catalog-file = { path = "crates/heycode-catalog-file" }
+heycode-live-artifact = { path = "crates/heycode-live-artifact" }
+heycode-provider-lmstudio = { path = "crates/heycode-provider-lmstudio" }
+heycode-telemetry = { path = "crates/heycode-telemetry" }
+heycode-telemetry-otlp = { path = "crates/heycode-telemetry-otlp" }
+heycode-hooks = { path = "crates/heycode-hooks" }
+heycode-install = { path = "crates/heycode-install" }
+heycode-provider-google = { path = "crates/heycode-provider-google" }
+heycode-provider-aws = { path = "crates/heycode-provider-aws" }
+heycode-provider-azure = { path = "crates/heycode-provider-azure" }
+heycode-provider-anthropic = { path = "crates/heycode-provider-anthropic" }
+heycode-provider-deepseek = { path = "crates/heycode-provider-deepseek" }
+heycode-provider-openai = { path = "crates/heycode-provider-openai" }
+heycode-provider-openrouter = { path = "crates/heycode-provider-openrouter" }
+heycode-provider-openai-compatible = { path = "crates/heycode-provider-openai-compatible" }
+heycode-provider-minimax = { path = "crates/heycode-provider-minimax" }
+heycode-provider-zai = { path = "crates/heycode-provider-zai" }
+heycode-runtime = { path = "crates/heycode-runtime" }
+heycode-runtime-claude = { path = "crates/heycode-runtime-claude" }
+heycode-runtime-codex = { path = "crates/heycode-runtime-codex" }
+heycode-runtime-deepseek-harness = { path = "crates/heycode-runtime-deepseek-harness" }
+heycode-runtime-opencode = { path = "crates/heycode-runtime-opencode" }
+heycode-runtime-grok = { path = "crates/heycode-runtime-grok" }
+heycode-sandbox = { path = "crates/heycode-sandbox" }
+heycode-config = { path = "crates/heycode-config" }
+heycode-credentials = { path = "crates/heycode-credentials" }
+heycode-credentials-command = { path = "crates/heycode-credentials-command" }
+heycode-credentials-env = { path = "crates/heycode-credentials-env" }
+heycode-credentials-file = { path = "crates/heycode-credentials-file" }
+heycode-settings = { path = "crates/heycode-settings" }
+heycode-settings-file = { path = "crates/heycode-settings-file" }
+heycode-status = { path = "crates/heycode-status" }
+heycode-tui = { path = "crates/heycode-tui" }
+heycode-ui = { path = "crates/heycode-ui" }
+heycode-web = { path = "crates/heycode-web" }
+heycode-cli = { path = "crates/heycode-cli" }
+
+# async runtime + utilities
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "process", "io-util", "sync", "time", "signal"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# serialization + config
+serde = { version = "1", features = ["derive"] }
+serde_ignored = "0.1"
+serde_json = "1"
+base64 = "0.22"
+toml = "0.8"
+toml_edit = "0.22"
+atomic-write-file = "0.3"
+notify = "8.2"
+secrecy = "0.10"
+sha2 = "0.10"
+
+# errors
+anyhow = "1"
+thiserror = "2"
+
+# http + sse
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream", "gzip"] }
+httpdate = "1.0.3"
+url = "2"
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
+html2text = "0.17.1"
+lopdf = "0.44.0"
+
+# tui
+ratatui = "0.29"
+crossterm = { version = "0.28", features = ["event-stream", "bracketed-paste"] }
+tui-textarea = "0.7"
+pulldown-cmark = "0.12"
+syntect = { version = "5", default-features = false, features = ["default-fancy"] }
+unicode-width = "0.2"
+
+# misc
+chrono = "0.4"
+uuid = { version = "1", features = ["v4"] }
+dirs = "5"
+regex = "1"
+tempfile = "3"
+processkit = "3.3.4"
+cap-std = "4.0.3"
+cap-fs-ext = "4.0.3"
+nix = { version = "0.31.3", features = ["fs"] }
+rusqlite = { version = "0.30", features = ["bundled"] }
+
+# external plugin Component Model runtime
+wasmtime = { version = "=48.0.1", default-features = false, features = ["anyhow", "async", "component-model", "component-model-async", "cranelift", "runtime", "std"] }
+wasmtime-wasi = { version = "=48.0.1", default-features = false, features = ["p3"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+dbg_macro = "deny"
+todo = "warn"
+unimplemented = "deny"
+print_stderr = "deny"
+print_stdout = "deny"
+# pedantic group stays OFF; enable targeted lints instead as they earn their place.
+
+[profile.dev]
+# Line tables only: keeps backtraces and panic locations useful, drops the
+# full DWARF type/variable info that dominated target/ size.
+debug = "line-tables-only"
+# Incremental state was 43G of a 64G target/ — 67%, and more than twice the
+# 20G of actual artifacts in debug/deps. It is a cache, not output, and this
+# workspace is the shape that makes it a bad trade: 55 small crates already
+# give cargo crate-level change granularity, so within-crate incremental adds
+# little, while every rebuild across every crate leaves state behind that
+# cargo never garbage-collects.
+#
+# Revert with `incremental = true` (or `CARGO_INCREMENTAL=1 cargo build` for
+# one invocation) if you are doing tight edit-compile loops inside one large
+# crate and want the within-crate reuse back.
+incremental = false
+
+[profile.dev.package."*"]
+# Dependencies are never stepped through in a debugger — no debug info at all.
+# This is the single biggest lever: 404 crates that no longer emit DWARF.
+debug = false
+# Cheap optimization on deps makes tests run faster and shrinks object count.
+opt-level = 1
+
+[profile.test]
+debug = "line-tables-only"
+
+[profile.dist]
+# Shipping builds optimize for installed size. Keep unwind enabled: plugin,
+# listener, hook and disposer boundaries deliberately contain panics.
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+debug = false
+incremental = false
+panic = "unwind"

@@ -1,0 +1,17 @@
+[package]
+name = "heycode-telemetry"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+heycode-core = { workspace = true }
+heycode-settings = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# No dev-dependencies: every test here is synchronous, and an unused dependency
+# in a crate whose guarantee is "it can only name four things" is not free.
+
+[lints]
+workspace = true

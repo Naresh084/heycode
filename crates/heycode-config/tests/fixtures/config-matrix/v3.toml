@@ -1,0 +1,4 @@
+schema_version = 3
+# Q17 saved schema 3 configuration
+[ui]
+accent = "matrix-v3"

@@ -1,0 +1,5 @@
+schema_version = 26
+# Q17 saved schema 26 configuration
+[subagent]
+worktree_base = "0123456789abcdef0123456789abcdef01234567"
+

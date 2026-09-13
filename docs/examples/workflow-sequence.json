@@ -1,0 +1,93 @@
+{
+  "version": 2,
+  "name": "research-demo",
+  "title": "Research and deliver",
+  "description": "Discover the scope, investigate three areas in parallel, and write the result.",
+  "capabilities": [
+    "progress",
+    "agent",
+    "tool"
+  ],
+  "max_parallel": 3,
+  "phases": [
+    {
+      "id": "discover",
+      "title": "Discover"
+    },
+    {
+      "id": "analyze",
+      "title": "Analyze"
+    },
+    {
+      "id": "deliver",
+      "title": "Deliver"
+    }
+  ],
+  "steps": [
+    {
+      "id": "scope",
+      "phase_id": "discover",
+      "label": "Set scope",
+      "action": {
+        "kind": "emit",
+        "value": "Compare options using evidence"
+      }
+    },
+    {
+      "id": "a",
+      "phase_id": "analyze",
+      "label": "Research reliability",
+      "depends_on": [
+        "scope"
+      ],
+      "action": {
+        "kind": "agent",
+        "prompt": "Inspect the project README and relevant source files. Give a concise, evidence-backed assessment of reliability; include file paths. Do not modify files."
+      }
+    },
+    {
+      "id": "b",
+      "phase_id": "analyze",
+      "label": "Research performance",
+      "depends_on": [
+        "scope"
+      ],
+      "action": {
+        "kind": "agent",
+        "prompt": "Inspect the project README and relevant source files. Give a concise, evidence-backed assessment of performance; include file paths. Do not modify files."
+      }
+    },
+    {
+      "id": "c",
+      "phase_id": "analyze",
+      "label": "Research usability",
+      "depends_on": [
+        "scope"
+      ],
+      "action": {
+        "kind": "agent",
+        "prompt": "Inspect the project README and relevant source files. Give a concise, evidence-backed assessment of usability; include file paths. Do not modify files."
+      }
+    },
+    {
+      "id": "report",
+      "phase_id": "deliver",
+      "label": "Write report",
+      "depends_on": [
+        "a",
+        "b",
+        "c"
+      ],
+      "action": {
+        "kind": "tool",
+        "name": "write",
+        "arguments": {
+          "path": "workflow-report.json",
+          "content": {
+            "$ref": "a#"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "agent_id": "fixture_candidate",
+  "model_id": "fixture/matched-model",
+  "permission_mode": "deny",
+  "sandbox_mode": "workspace",
+  "timeout_s": 10.0,
+  "live": false,
+  "pass_env": [],
+  "argv": [
+    "{python}",
+    "{repository}/evals/fixtures/fake_coding_agent.py",
+    "--workspace",
+    "{workspace}",
+    "--task",
+    "{task_id}",
+    "--seed",
+    "{seed}",
+    "--model",
+    "{model}",
+    "--prompt",
+    "{prompt}"
+  ]
+}
+

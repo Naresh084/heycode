@@ -1,0 +1,12 @@
+{"v":1,"seq":0,"time_ms":1730000000000,"kind":"turn/start","data":{"turn":1}}
+{"v":1,"seq":1,"time_ms":1730000000001,"kind":"step/start","data":{"turn":1,"step":1}}
+{"v":1,"seq":2,"time_ms":1730000000002,"kind":"user/message","data":{"text":"hello"}}
+{"v":1,"seq":3,"time_ms":1730000000003,"kind":"assistant/chunk","data":{"turn":1,"step":1,"text":"partial"}}
+{"v":1,"seq":4,"time_ms":1730000000004,"kind":"assistant/message","data":{"turn":1,"step":1,"content":"","reasoning":"why","tool_calls":[{"id":"call_1","name":"read","arguments":"{\"path\":\"a.txt\"}"}],"usage":{"prompt_tokens":9,"completion_tokens":3}}}
+{"v":1,"seq":5,"time_ms":1730000000005,"kind":"tool/call","data":{"turn":1,"call_id":"call_1","name":"read","args":{"path":"a.txt"}}}
+{"v":1,"seq":6,"time_ms":1730000000006,"kind":"tool/result","data":{"call_id":"call_1","content":"contents","is_error":false}}
+{"v":1,"seq":7,"time_ms":1730000000007,"kind":"step/end","data":{"turn":1,"step":1}}
+{"v":1,"seq":8,"time_ms":1730000000008,"kind":"turn/end","data":{"turn":1,"reason":"stop"}}
+{"v":1,"seq":9,"time_ms":1730000000009,"kind":"plan/mode","data":{"active":true}}
+{"v":1,"seq":10,"time_ms":1730000000010,"kind":"session/title","data":{"title":"fixture"}}
+{"v":1,"seq":11,"time_ms":1730000000011,"kind":"compaction/applied","data":{"summary":"earlier setup","replaced_upto_seq":1}}

@@ -1,0 +1,27 @@
+[package]
+name = "heycode-web"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+heycode-core = { workspace = true }
+heycode-attachments = { workspace = true }
+heycode-settings = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+html2text = { workspace = true }
+lopdf = { workspace = true }
+reqwest = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["net"] }
+tokio-util = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+heycode-session = { workspace = true }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,198 @@
+{
+  "protocolVersion": 1,
+  "initialize": {
+    "protocolVersion": 1,
+    "server": { "name": "heycode", "version": "0.1.0" },
+    "capabilities": {
+      "turns": true,
+      "attachments": true,
+      "cancel": true,
+      "authorization": true,
+      "models": true,
+      "runtimes": false,
+      "workspace": false,
+      "mcp": true,
+      "plugins": true,
+      "settings": true
+    }
+  },
+  "session": {
+    "sessionId": "session-1",
+    "runtimeId": "native",
+    "cwd": "/workspace",
+    "configuration": {
+      "systemPrompt": "Use exact instructions",
+      "tools": [],
+      "model": "runtime-model",
+      "reasoningEffort": "high"
+    },
+    "configurationCapabilities": {
+      "systemPrompt": "supported",
+      "tools": "supported",
+      "model": "supported",
+      "reasoningEffort": "supported"
+    }
+  },
+  "turn": { "turnId": "7", "reason": "stop" },
+  "notifications": [
+    {
+      "jsonrpc": "2.0",
+      "method": "session/event",
+      "params": {
+        "sessionId": "session-1",
+        "sequence": 10,
+        "event": { "type": "user_input", "text": "hello", "attachments": [], "document_routes": [] }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "session/event",
+      "params": { "sessionId": "session-1", "sequence": 11, "event": { "type": "turn_started", "turn_id": "7" } }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "session/event",
+      "params": { "sessionId": "session-1", "sequence": 12, "event": { "type": "assistant_delta", "text": "hi" } }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "session/event",
+      "params": { "sessionId": "session-1", "sequence": 13, "event": { "type": "reasoning_delta", "text": "thinking" } }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "session/event",
+      "params": {
+        "sessionId": "session-1",
+        "sequence": 14,
+        "event": { "type": "tool_started", "call_id": "call-1", "name": "read", "arguments": { "path": "README.md" } }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "session/event",
+      "params": {
+        "sessionId": "session-1",
+        "sequence": 15,
+        "event": { "type": "tool_finished", "call_id": "call-1", "name": "read", "result": { "ok": true }, "ok": true }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "session/event",
+      "params": { "sessionId": "session-1", "sequence": 16, "event": { "type": "usage", "usage": { "prompt_tokens": 8, "completion_tokens": 4 }, "context": { "tokens": 2767, "context_window": 1000000, "resolved_model": "claude-opus-5[1m]" } } }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "session/event",
+      "params": { "sessionId": "session-1", "sequence": 17, "event": { "type": "plan_changed", "active": true } }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "session/event",
+      "params": { "sessionId": "session-1", "sequence": 18, "event": { "type": "notice", "code": "safe.notice", "message": "safe" } }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "control/event",
+      "params": {
+        "sequence": 19,
+        "event": {
+          "type": "authorization_prompt_requested",
+          "prompt_id": 3,
+          "prompt": "Paste key",
+          "reference": "TEST_API_KEY",
+          "kind": "api-key",
+          "masked": true
+        }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "control/event",
+      "params": { "sequence": 20, "event": { "type": "authorization_prompt_resolved", "prompt_id": 3, "answered": true } }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "session/event",
+      "params": {
+        "sessionId": "session-1",
+        "sequence": 21,
+        "event": { "type": "permission_requested", "request_id": "request-1", "action": "Run command", "detail": "cargo test" }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "session/event",
+      "params": {
+        "sessionId": "session-1",
+        "sequence": 22,
+        "event": { "type": "question_requested", "request_id": "request-2", "prompt": "Continue?", "choices": ["Yes", "No"] }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "session/event",
+      "params": {
+        "sessionId": "session-1",
+        "sequence": 23,
+        "event": {
+          "type": "assistant_audio",
+          "attachments": [
+            {
+              "content_id": "sha256-7171717171717171717171717171717171717171717171717171717171717171",
+              "media_type": "audio/wav",
+              "byte_len": 16044,
+              "display_name": "answer.wav",
+              "audio": {
+                "duration_ms": 1000,
+                "sample_rate_hz": 8000,
+                "channels": 1,
+                "bits_per_sample": 16
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "session/event",
+      "params": {
+        "sessionId": "session-1",
+        "sequence": 24,
+        "event": { "type": "turn_finished", "turn_id": "7", "reason": "stop", "usage": { "prompt_tokens": 8, "completion_tokens": 4 } }
+      }
+    }
+  ],
+  "authorization": {
+    "id": "test-api-key",
+    "label": "Test API key",
+    "method": "api_key",
+    "interactive": true,
+    "provider": "test",
+    "credential": {
+      "reference": "TEST_API_KEY",
+      "kind": "api-key",
+      "inspected": false,
+      "configured": null,
+      "source": null,
+      "provider": null,
+      "writable": null,
+      "validation": { "state": "unknown" }
+    }
+  },
+  "settings": {
+    "namespace": "routing",
+    "exposed": true,
+    "writable": true,
+    "applies": "live",
+    "revision": 2,
+    "schema": {},
+    "defaults": {},
+    "base": null,
+    "user": null,
+    "project": null,
+    "resolved": { "runtime": "native", "provider": "test", "model": "test-model" }
+  }
+}

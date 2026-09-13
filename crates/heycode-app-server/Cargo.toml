@@ -1,0 +1,32 @@
+[package]
+name = "heycode-app-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+heycode-core = { workspace = true }
+heycode-sdk = { workspace = true }
+heycode-session = { workspace = true }
+heycode-runtime = { workspace = true }
+heycode-agent = { workspace = true }
+heycode-settings = { workspace = true }
+heycode-credentials = { workspace = true }
+heycode-authorization = { workspace = true }
+heycode-authorization-api-key = { workspace = true }
+heycode-llm = { workspace = true }
+heycode-mcp = { workspace = true }
+heycode-routing = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["io-std"] }
+tokio-util = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,10 @@
+# This comment and the custom composition are user-owned.
+[profile]
+plugins = ["session", "prompt", "tools", "llm"]
+
+[llm]
+provider = "openrouter"
+model = "custom/model"
+
+[future_extension]
+preserve_me = true

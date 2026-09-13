@@ -1,0 +1,15 @@
+{
+  "role": "assistant",
+  "content": "<think>The user asked for the weather in San Francisco. I have a get_weather tool, so I should call it with the city and country rather than guessing.</think>",
+  "tool_calls": [
+    {
+      "id": "call_function_3679004591_1",
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "arguments": "{\"location\": \"San Francisco, US\"}"
+      },
+      "index": 0
+    }
+  ]
+}

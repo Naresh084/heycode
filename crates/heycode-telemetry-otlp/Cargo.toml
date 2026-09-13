@@ -1,0 +1,20 @@
+[package]
+name = "heycode-telemetry-otlp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+heycode-core = { workspace = true }
+heycode-credentials = { workspace = true }
+heycode-http = { workspace = true }
+heycode-settings = { workspace = true }
+heycode-telemetry = { workspace = true }
+futures = { workspace = true }
+httpdate = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+
+[lints]
+workspace = true

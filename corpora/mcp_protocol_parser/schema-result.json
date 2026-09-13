@@ -1,0 +1,2 @@
+{"content":[{"type":"text","text":"structured synthetic result"}],"structuredContent":{"ok":true,"count":1},"_fuzzOutputSchema":{"type":"object","required":["ok"],"properties":{"ok":{"type":"boolean"},"count":{"type":"integer"}}}}
+

@@ -1,0 +1,50 @@
+[package]
+name = "heycode-agent"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+heycode-code-mode.workspace = true
+heycode-core = { workspace = true }
+heycode-attachments = { workspace = true }
+heycode-exec = { workspace = true }
+heycode-hooks = { workspace = true }
+heycode-session = { workspace = true }
+heycode-llm = { workspace = true }
+heycode-native-tools = { workspace = true }
+heycode-web = { workspace = true }
+heycode-tools = { workspace = true }
+heycode-prompt = { workspace = true }
+heycode-runtime = { workspace = true }
+heycode-settings = { workspace = true }
+heycode-telemetry = { workspace = true }
+anyhow = { workspace = true }
+atomic-write-file = { workspace = true }
+cap-std = { workspace = true }
+cap-fs-ext = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2.workspace = true
+tempfile.workspace = true
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+nix.workspace = true
+
+[dev-dependencies]
+heycode-trust = { workspace = true }
+image = { workspace = true }
+lopdf = { workspace = true }
+heycode-http = { workspace = true }
+heycode-sandbox = { workspace = true }
+heycode-runtime-codex = { workspace = true }
+heycode-runtime-claude = { workspace = true }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

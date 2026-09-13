@@ -1,0 +1,6 @@
+data: {"choices":[{"index":0,"delta":{"content":"synthetic"},"finish_reason":null}]}
+
+data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":2,"completion_tokens":1}}
+
+data: [DONE]
+

@@ -1,0 +1,136 @@
+# X06 Node distributable gates: the two shipped non-Rust artifacts, the
+# `@heycode/sdk` npm package under sdks/typescript and the heycode-vscode extension
+# under editors/vscode.
+#
+# ────────────────────────────────────────────────────────────────────────────
+# THIS WORKFLOW HAS NEVER RUN ON GITHUB ACTIONS. No push, pull request, or
+# dispatch in this repository has executed it, so it is not evidence that these
+# suites pass on a hosted runner. What IS verified, locally on 2026-08-31 with
+# Node v25.2.1 / npm 11.6.2: `npm ci && npm test` passes in sdks/typescript
+# (5 tests) and in editors/vscode (7 tests), and `npm run package` produces the
+# VSIX, using exactly the commands below.
+#
+# Why this file exists. Before it, no workflow installed Node, ran npm, or
+# path-filtered on `sdks/**` or `editors/**`. `cargo test --workspace` cannot
+# see either package, and cross-platform-gates.yml runs on an SDK-only change
+# and reports green from Rust gates alone. That gap was not theoretical: adding
+# `assistant_audio` to the shared fixture `sdks/fixtures/app-server-v1.json`
+# left the TypeScript twin's expected event-name list at 14 entries while the
+# fixture yielded 15, and every automated gate stayed green while
+# `sdks/typescript`'s own README command was red.
+#
+# `sdks/fixtures/**` is inside the `sdks/**` filter on purpose: the fixture is
+# the cross-language contract Rust and TypeScript share, and editing it is what
+# broke the TypeScript half. A filter that watched only `sdks/typescript/**`
+# would have missed the actual regression.
+#
+# The extension job installs the SDK first. editors/vscode depends on
+# `@heycode/sdk` as `file:../../sdks/typescript` and its `test` script runs
+# `npm --prefix ../../sdks/typescript run build`, so the SDK's own devDeps
+# (TypeScript) must be present or the extension build fails at the first step.
+#
+# Deliberately NOT covered: `npm run test:host` and `npm run test:installed-host`
+# — the AGENTS.md X07 Extension Development Host acceptance journey. Those
+# download a VS Code/Electron build and drive the shipping `heycode` binary.
+# Wiring an Electron fetch into a hosted runner is a separate decision that has
+# not been made, so X07 remains a human-run gate. This file gates the headless
+# protocol suite and that the VSIX can be built at all; it does not claim the
+# installed-host journey.
+# ────────────────────────────────────────────────────────────────────────────
+
+name: Node packages (NEVER EXECUTED on CI)
+
+"on":
+  pull_request:
+    paths:
+      - "sdks/**"
+      - "editors/**"
+      - ".github/workflows/node-packages.yml"
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: node-packages-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # sdks/typescript/package.json and editors/vscode/package.json both declare
+  # `engines.node >= 24.12`. Pinning the major here rather than a full version
+  # keeps the gate on the line the packages actually promise.
+  NODE_VERSION: "24"
+
+jobs:
+  typescript-sdk:
+    name: "@heycode/sdk"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pinned Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Record the toolchain actually in use
+        run: |
+          node --version
+          npm --version
+
+      # `npm ci` rather than `npm install`: it fails when package-lock.json and
+      # package.json disagree instead of quietly resolving something else, and
+      # it is the determinism half of this gate.
+      - name: Install locked dependencies
+        working-directory: sdks/typescript
+        run: npm ci
+
+      # `npm test` is build + example typecheck + node --test + the typed
+      # example executed. It includes the shared-fixture test that the missing
+      # gate let regress.
+      - name: Build, typecheck, and test the SDK
+        working-directory: sdks/typescript
+        run: npm test
+
+  vscode-extension:
+    name: heycode-vscode
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pinned Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Record the toolchain actually in use
+        run: |
+          node --version
+          npm --version
+
+      - name: Install locked SDK dependencies
+        working-directory: sdks/typescript
+        run: npm ci
+
+      - name: Install locked extension dependencies
+        working-directory: editors/vscode
+        run: npm ci
+
+      - name: Build, typecheck, and test the extension
+        working-directory: editors/vscode
+        run: npm test
+
+      # Building the VSIX is the only automated check that the shipped
+      # distributable can be produced at all. It does not install or run it;
+      # that is the X07 journey this workflow deliberately does not claim.
+      - name: Package the VSIX distributable
+        working-directory: editors/vscode
+        run: npm run package

@@ -1,0 +1,12 @@
+schema_version = 25
+
+[llm]
+provider = "deepseek"
+model = "deepseek-v4-flash"
+
+[compaction]
+auto = false
+
+[tools]
+read_max_lines = 64
+

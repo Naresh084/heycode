@@ -1,0 +1,200 @@
+# Q10/Q11/QSEC05 evidence infrastructure. The file existing is not evidence
+# that any hosted budget, live comparison, or security case passed.
+name: Quality benchmarks and evals
+
+"on":
+  pull_request:
+    paths:
+      - "quality/**"
+      - "benchmarks/**"
+      - "evals/**"
+      - ".github/workflows/quality-evals.yml"
+      - "crates/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+  push:
+    branches:
+      - main
+      - master
+  schedule:
+    - cron: "43 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      run_live_comparison:
+        description: "Run explicitly configured real-provider candidate/reference trials"
+        required: false
+        type: boolean
+        default: false
+      live_candidate_config:
+        description: "Repository-relative schema-v1 candidate config under evals/"
+        required: false
+        type: string
+        default: ""
+      live_reference_config:
+        description: "Repository-relative schema-v1 reference config under evals/"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-evals-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+  RUST_TOOLCHAIN: "1.97.1"
+
+jobs:
+  deterministic:
+    name: Deterministic harness and product gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+
+      - name: Compile and test the Python harnesses
+        run: |
+          python3 -m compileall -q quality benchmarks evals
+          python3 -m unittest discover -s quality/tests -v
+          python3 -m unittest discover -s benchmarks/tests -v
+          python3 -m unittest discover -s evals/tests -v
+
+      - name: Build the black-box product subject
+        run: cargo build --locked -p heycode-cli
+
+      - name: Run deterministic fixture evidence
+        run: |
+          mkdir -p "$RUNNER_TEMP/quality-results"
+          python3 benchmarks/run.py \
+            --subject fixture \
+            --budget-profile fixture_ci \
+            --repetitions 5 \
+            --warmups 1 \
+            --seed 20260831 \
+            --enforce-budgets \
+            --output "$RUNNER_TEMP/quality-results/q10-fixture.json"
+          python3 evals/run_coding.py \
+            --repetitions 3 \
+            --seed 20260831 \
+            --output "$RUNNER_TEMP/quality-results/q11-fixture.json"
+          python3 evals/run_security.py \
+            --subject fixture \
+            --seed 20260831 \
+            --include-positive-control \
+            --output "$RUNNER_TEMP/quality-results/qsec05-fixture.json"
+
+      - name: Run debug-build product performance smoke
+        id: product_performance
+        continue-on-error: true
+        run: |
+          python3 benchmarks/run.py \
+            --subject heycode \
+            --binary target/debug/heycode \
+            --budget-profile ci_debug \
+            --repetitions 5 \
+            --warmups 1 \
+            --seed 20260831 \
+            --enforce-budgets \
+            --output "$RUNNER_TEMP/quality-results/q10-heycode-debug.json"
+
+      - name: Run product Web/MCP/LSP injection gate
+        id: product_security
+        continue-on-error: true
+        run: |
+          python3 evals/run_security.py \
+            --subject heycode \
+            --binary target/debug/heycode \
+            --seed 20260831 \
+            --include-positive-control \
+            --output "$RUNNER_TEMP/quality-results/qsec05-heycode.json"
+
+      - name: Validate content-free result boundaries
+        if: always()
+        run: |
+          python3 quality/validate_results.py \
+            "$RUNNER_TEMP/quality-results/q10-fixture.json" \
+            "$RUNNER_TEMP/quality-results/q11-fixture.json" \
+            "$RUNNER_TEMP/quality-results/qsec05-fixture.json" \
+            "$RUNNER_TEMP/quality-results/q10-heycode-debug.json" \
+            "$RUNNER_TEMP/quality-results/qsec05-heycode.json"
+
+      - name: Upload content-free deterministic evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: quality-evals-content-free
+          path: ${{ runner.temp }}/quality-results/*.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce product outcomes after artifact publication
+        if: always()
+        env:
+          PERFORMANCE_OUTCOME: ${{ steps.product_performance.outcome }}
+          SECURITY_OUTCOME: ${{ steps.product_security.outcome }}
+        run: |
+          test "$PERFORMANCE_OUTCOME" = "success"
+          test "$SECURITY_OUTCOME" = "success"
+
+  live-comparison:
+    name: Explicitly gated live matched comparison
+    needs: deterministic
+    if: github.event_name == 'workflow_dispatch' && inputs.run_live_comparison
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      HEYCODE_EVAL_LIVE: "1"
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CANDIDATE_CONFIG: ${{ inputs.live_candidate_config }}
+      REFERENCE_CONFIG: ${{ inputs.live_reference_config }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+
+      - name: Build heycode candidate
+        run: cargo build --locked --release -p heycode-cli
+
+      - name: Admit operator-reviewed live configs
+        run: |
+          case "$CANDIDATE_CONFIG" in evals/*) ;; *) exit 2 ;; esac
+          case "$REFERENCE_CONFIG" in evals/*) ;; *) exit 2 ;; esac
+          test -f "$CANDIDATE_CONFIG"
+          test -f "$REFERENCE_CONFIG"
+
+      - name: Run repeated live matched trials
+        run: |
+          mkdir -p "$RUNNER_TEMP/quality-live-results"
+          python3 evals/run_coding.py \
+            --live \
+            --candidate "$CANDIDATE_CONFIG" \
+            --reference "$REFERENCE_CONFIG" \
+            --repetitions 10 \
+            --seed 20260831 \
+            --output "$RUNNER_TEMP/quality-live-results/q11-live.json"
+          python3 quality/validate_results.py --require-passed \
+            "$RUNNER_TEMP/quality-live-results/q11-live.json"
+
+      - name: Upload content-free live comparison
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: quality-evals-live-content-free
+          path: ${{ runner.temp }}/quality-live-results/q11-live.json
+          if-no-files-found: error
+          retention-days: 14

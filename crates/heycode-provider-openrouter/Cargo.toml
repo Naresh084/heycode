@@ -1,0 +1,28 @@
+[package]
+name = "heycode-provider-openrouter"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+heycode-core = { workspace = true }
+heycode-authorization = { workspace = true }
+heycode-authorization-api-key = { workspace = true }
+heycode-credentials = { workspace = true }
+heycode-http = { workspace = true }
+heycode-llm = { workspace = true }
+heycode-native-tools = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio-util = { workspace = true }
+
+[dev-dependencies]
+atomic-write-file = { workspace = true }
+heycode-live-artifact = { workspace = true }
+futures = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,11 @@
+mod attestation;
+mod gh_verifier;
+mod manager;
+mod manifest;
+mod onboarding_matrix;
+mod plugin;
+mod release_policy;
+mod rollback_gate;
+mod support;
+mod transitions;
+mod workflow;

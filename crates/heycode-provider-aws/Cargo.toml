@@ -1,0 +1,27 @@
+[package]
+name = "heycode-provider-aws"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+heycode-core = { workspace = true }
+futures = { workspace = true }
+heycode-llm = { workspace = true }
+heycode-http = { workspace = true }
+heycode-credentials = { workspace = true }
+heycode-authorization-aws = { workspace = true }
+heycode-settings = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+futures = { workspace = true }
+
+[lints]
+workspace = true

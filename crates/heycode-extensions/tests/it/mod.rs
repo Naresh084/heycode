@@ -1,0 +1,11 @@
+mod code_plugin;
+mod declarative_activation;
+mod dependency_resolver;
+mod install_cache;
+mod lifecycle;
+mod lifecycle_lab;
+mod managed_policy;
+mod manifest_v1;
+mod marketplace;
+mod plugin_inspector;
+mod wasi_component;

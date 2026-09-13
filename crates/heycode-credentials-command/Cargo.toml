@@ -1,0 +1,20 @@
+[package]
+name = "heycode-credentials-command"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+heycode-core = { workspace = true }
+heycode-exec = { workspace = true }
+heycode-credentials = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+heycode-settings = { workspace = true }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

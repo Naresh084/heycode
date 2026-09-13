@@ -1,0 +1,12 @@
+{
+  "name": "heycode-installed-host-harness",
+  "displayName": "heycode Installed Host Harness",
+  "version": "0.0.0",
+  "publisher": "heycode-tests",
+  "private": true,
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "main": "./extension.cjs",
+  "activationEvents": ["*"]
+}

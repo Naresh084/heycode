@@ -1,0 +1,32 @@
+[package]
+name = "heycode-extensions"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+cap-fs-ext = { workspace = true }
+cap-std = { workspace = true }
+heycode-core = { workspace = true }
+heycode-settings = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+tokio-util = { workspace = true }
+toml = { workspace = true }
+
+[dev-dependencies]
+# Q06's lifecycle/HMR lab drives `heycode-core`'s async `Waterfall` seam, which
+# cannot be implemented or run without these three. Test-only.
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+serde_json = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+nix = { workspace = true }
+
+[lints]
+workspace = true

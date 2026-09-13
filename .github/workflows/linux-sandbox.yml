@@ -1,0 +1,81 @@
+name: Linux sandbox runtime
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/linux-sandbox.yml"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "crates/heycode-core/**"
+      - "crates/heycode-exec/**"
+      - "crates/heycode-sandbox/**"
+      - "crates/heycode-cli/**"
+  push:
+    paths:
+      - ".github/workflows/linux-sandbox.yml"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "crates/heycode-core/**"
+      - "crates/heycode-exec/**"
+      - "crates/heycode-sandbox/**"
+      - "crates/heycode-cli/**"
+  schedule:
+    - cron: "41 7 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-sandbox-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-matrix:
+    name: Landlock and bubblewrap filesystem/process/network matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_TOOLCHAIN: 1.97.1
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustup default "$RUST_TOOLCHAIN"
+
+      - name: Install bubblewrap fallback
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends bubblewrap
+
+      - name: Verify Linux and bubblewrap prerequisites
+        run: |
+          test "$(uname -s)" = Linux
+          test "$(uname -m)" = x86_64
+          test "$(command -v bwrap)" = /usr/bin/bwrap
+          /usr/bin/bwrap \
+            --ro-bind / / \
+            --dev /dev \
+            --proc /proc \
+            --unshare-pid \
+            --die-with-parent \
+            -- /usr/bin/true
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Lint sandbox targets
+        run: cargo clippy --locked -p heycode-sandbox -p heycode-cli --all-targets -- -D warnings
+
+      - name: Exercise the production Landlock launcher boundary
+        run: |
+          cargo build --locked -p heycode-cli
+          rules='{"handled_access":8191,"grants":[{"path":"/","access":13},{"path":"/dev/null","access":2}]}'
+          ./target/debug/heycode __landlock "$rules" -- /usr/bin/true
+
+      - name: Run Landlock and bubblewrap runtime matrix
+        run: cargo test --locked -p heycode-sandbox --test main it::linux_runtime -- --nocapture

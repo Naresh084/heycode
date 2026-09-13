@@ -1,0 +1,11 @@
+schema_version = 31
+# Native background and child admission budgets are persisted configuration.
+[jobs]
+max_concurrent = 8
+max_queued = 32
+max_history = 128
+max_admissions = 4096
+[subagent]
+max_concurrent = 8
+max_provider_requests = 4096
+max_output_tokens = 1000000

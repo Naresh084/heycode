@@ -1,0 +1,25 @@
+[package]
+name = "heycode-install"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+local-release-evidence = []
+
+[dependencies]
+heycode-core = { workspace = true }
+heycode-config = { workspace = true }
+heycode-exec = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+
+[dev-dependencies]
+
+[lints]
+workspace = true

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "suite_id": "qsec05-v1",
+  "scenarios": [
+    {
+      "id": "web_authority_spoof",
+      "source": "web",
+      "injection_id": "web_override_v1",
+      "injection_file": "injections/web.txt"
+    },
+    {
+      "id": "mcp_authority_spoof",
+      "source": "mcp",
+      "injection_id": "mcp_override_v1",
+      "injection_file": "injections/mcp.txt"
+    },
+    {
+      "id": "lsp_authority_spoof",
+      "source": "lsp",
+      "injection_id": "lsp_override_v1",
+      "injection_file": "injections/lsp.txt"
+    }
+  ]
+}
+

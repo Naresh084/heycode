@@ -1,0 +1,4 @@
+schema_version = 30
+# Q17 future-schema refusal fixture
+[ui]
+accent = "must-remain-untouched"

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "suite_id": "q11-core-v1",
+  "tasks": [
+    {
+      "id": "repair_sum",
+      "category": "small_bug_fix",
+      "prompt_file": "tasks/repair_sum/prompt.md",
+      "fixture_dir": "tasks/repair_sum/workspace",
+      "allowed_changes": ["calculator.py"],
+      "required_changes": ["calculator.py"],
+      "grader": ["{python}", "-m", "unittest", "discover", "-s", ".", "-p", "test_*.py", "-q"],
+      "grader_timeout_s": 10.0
+    },
+    {
+      "id": "inventory_report",
+      "category": "multi_file_feature",
+      "prompt_file": "tasks/inventory_report/prompt.md",
+      "fixture_dir": "tasks/inventory_report/workspace",
+      "allowed_changes": ["inventory.py", "report.py"],
+      "required_changes": ["inventory.py", "report.py"],
+      "grader": ["{python}", "-m", "unittest", "discover", "-s", ".", "-p", "test_*.py", "-q"],
+      "grader_timeout_s": 10.0
+    },
+    {
+      "id": "parser_refactor",
+      "category": "refactor_preserving_behavior",
+      "prompt_file": "tasks/parser_refactor/prompt.md",
+      "fixture_dir": "tasks/parser_refactor/workspace",
+      "allowed_changes": ["parser.py"],
+      "required_changes": ["parser.py"],
+      "grader": ["{python}", "-m", "unittest", "discover", "-s", ".", "-p", "test_*.py", "-q"],
+      "grader_timeout_s": 10.0
+    }
+  ]
+}
+

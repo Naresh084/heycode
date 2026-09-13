@@ -1,0 +1,12 @@
+mod catalog;
+mod claude_vertex;
+mod execution_cache;
+mod external_grounding;
+mod grounding;
+mod inference;
+mod inference_plugin;
+mod oauth;
+mod profile;
+mod settings;
+mod support;
+mod vertex_setup;

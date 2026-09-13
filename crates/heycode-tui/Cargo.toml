@@ -1,0 +1,61 @@
+[package]
+name = "heycode-tui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+chrono = { workspace = true }
+unicode-segmentation = "1.13.3"
+heycode-core = { workspace = true }
+heycode-agent = { workspace = true }
+heycode-attachments = { workspace = true }
+heycode-app-server = { workspace = true }
+heycode-authorization = { workspace = true }
+heycode-authorization-api-key = { workspace = true }
+heycode-credentials = { workspace = true }
+heycode-config = { workspace = true }
+heycode-catalog-file = { workspace = true }
+heycode-doctor = { workspace = true }
+heycode-exec = { workspace = true }
+heycode-extensions = { workspace = true }
+heycode-hooks = { workspace = true }
+heycode-llm = { workspace = true }
+heycode-mcp = { workspace = true }
+heycode-runtime = { workspace = true }
+heycode-routing = { workspace = true }
+heycode-onboarding = { workspace = true }
+heycode-prompt = { workspace = true }
+heycode-session = { workspace = true }
+heycode-settings = { workspace = true }
+heycode-skills = { workspace = true }
+heycode-status = { workspace = true }
+heycode-ui = { workspace = true }
+heycode-trust = { workspace = true }
+heycode-tools = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+crossterm = { workspace = true }
+futures = { workspace = true }
+pulldown-cmark = { workspace = true }
+ratatui = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+nix = { workspace = true, features = ["term"] }
+syntect = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+thiserror = { workspace = true }
+tui-textarea = { workspace = true, features = ["search"] }
+unicode-width = { workspace = true }
+secrecy = { workspace = true }
+uuid.workspace = true
+tempfile = { workspace = true }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+heycode-sandbox = { workspace = true }
+heycode-native-tools = { workspace = true }

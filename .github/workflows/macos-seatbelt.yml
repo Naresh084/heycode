@@ -1,0 +1,62 @@
+name: macOS Seatbelt runtime
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/macos-seatbelt.yml"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "crates/heycode-core/**"
+      - "crates/heycode-exec/**"
+      - "crates/heycode-sandbox/**"
+  push:
+    paths:
+      - ".github/workflows/macos-seatbelt.yml"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "crates/heycode-core/**"
+      - "crates/heycode-exec/**"
+      - "crates/heycode-sandbox/**"
+  schedule:
+    - cron: "23 7 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-seatbelt-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-matrix:
+    name: Seatbelt path, network, and socket matrix
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_TOOLCHAIN: 1.97.1
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustup default "$RUST_TOOLCHAIN"
+
+      - name: Verify native arm64 Seatbelt prerequisite
+        run: |
+          test "$(uname -s)" = Darwin
+          test "$(uname -m)" = arm64
+          test "$(command -v sandbox-exec)" = /usr/bin/sandbox-exec
+          /usr/bin/sandbox-exec -p '(version 1)(allow default)' -- /usr/bin/true
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Lint sandbox targets
+        run: cargo clippy --locked -p heycode-sandbox --all-targets -- -D warnings
+
+      - name: Run Seatbelt runtime matrix
+        run: cargo test --locked -p heycode-sandbox --test main it::seatbelt_runtime -- --nocapture

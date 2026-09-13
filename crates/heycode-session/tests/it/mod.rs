@@ -1,0 +1,25 @@
+mod attachments;
+mod compaction_stress;
+mod crash_repair;
+mod fork_lineage;
+mod goal_domain;
+mod hook_contributions;
+mod inbox_projection;
+mod migration_matrix;
+mod native_compaction;
+mod provider_state;
+mod request_projection;
+mod request_snapshot;
+mod review_domain;
+mod runtime_link;
+mod schedule_domain;
+mod server_tools;
+mod session_lifecycle;
+mod session_query;
+mod sqlite_index;
+mod team_domain;
+mod version_migration;
+mod workflow_domain;
+mod write_read_symmetry;
+
+mod context_recovery_completion;

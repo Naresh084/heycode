@@ -1,0 +1,24 @@
+[package]
+name = "heycode-provider-openai-compatible"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+heycode-core.workspace = true
+heycode-credentials.workspace = true
+heycode-http.workspace = true
+heycode-llm.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+
+[lints]
+workspace = true

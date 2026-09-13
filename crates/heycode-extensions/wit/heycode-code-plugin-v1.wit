@@ -1,0 +1,96 @@
+package dshx:code-plugin@1.0.0;
+
+interface plugin {
+    enum contribution-kind {
+        skill,
+        command,
+        agent,
+        hook,
+        theme,
+        provider,
+    }
+
+    enum permission {
+        filesystem-read,
+        filesystem-write,
+        network-access,
+        process-spawn,
+        credential-use,
+        mcp-connect,
+        hook-registration,
+        contribution-override,
+    }
+
+    record contribution {
+        kind: contribution-kind,
+        name: string,
+    }
+
+    record initialize-request {
+        protocol-version: u32,
+        session-id: string,
+        package-id: string,
+        package-version: string,
+        package-digest: string,
+        component-digest: string,
+        granted-capabilities: list<permission>,
+        contributions: list<contribution>,
+    }
+
+    record ready {
+        protocol-version: u32,
+        session-id: string,
+        package-id: string,
+        package-version: string,
+        package-digest: string,
+        component-digest: string,
+        accepted-capabilities: list<permission>,
+        contributions: list<contribution>,
+    }
+
+    variant protocol-error {
+        invalid-request,
+        identity-mismatch,
+        capability-mismatch,
+        contribution-mismatch,
+        failed,
+    }
+
+    record invocation-request {
+        protocol-version: u32,
+        session-id: string,
+        request-id: u64,
+        contribution: contribution,
+        operation: string,
+        input-json: list<u8>,
+    }
+
+    variant invocation-error {
+        invalid-request,
+        denied,
+        unavailable,
+        failed,
+    }
+
+    initialize: func(request: initialize-request) -> result<ready, protocol-error>;
+    invoke: func(request: invocation-request) -> result<list<u8>, invocation-error>;
+}
+
+world code-plugin {
+    export plugin;
+}
+
+world code-plugin-filesystem {
+    include code-plugin;
+    include wasi:filesystem/imports@0.3.1;
+}
+
+world code-plugin-network {
+    include code-plugin;
+    include wasi:sockets/imports@0.3.1;
+}
+
+world code-plugin-filesystem-network {
+    include code-plugin-filesystem;
+    include code-plugin-network;
+}

@@ -1,0 +1,29 @@
+mod acp;
+mod app_server;
+mod base_url;
+mod cloud_provider_matrix;
+mod cloud_pty;
+mod composition;
+mod composition_doctor;
+mod credentials_isolation;
+mod documentation_program_links;
+mod e2e;
+mod first_run_orchestration;
+mod init_command;
+mod mcp_cli;
+mod openrouter_live;
+mod plugin_cli;
+mod plugin_inventory;
+mod process_spawn_law;
+mod provider_openrouter;
+mod provider_retry_composition;
+mod real_composition_harness;
+mod release_cli;
+mod routing_commands;
+mod secret_canary;
+mod setup_catalog;
+
+mod endpoint_tool_roundtrip;
+
+mod model_fallback;
+mod provider_protocol_matrix;

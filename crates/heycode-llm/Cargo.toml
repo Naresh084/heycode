@@ -1,0 +1,29 @@
+[package]
+name = "heycode-llm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+heycode-core = { workspace = true }
+heycode-credentials = { workspace = true }
+heycode-http = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+base64 = { workspace = true }
+futures = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+# `net` powers the handcrafted mock SSE server in tests/.
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net"] }
+
+[lints]
+workspace = true

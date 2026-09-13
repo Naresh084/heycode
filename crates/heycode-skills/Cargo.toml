@@ -1,0 +1,31 @@
+[package]
+name = "heycode-skills"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+heycode-core = { workspace = true }
+heycode-agent = { workspace = true }
+heycode-session = { workspace = true }
+heycode-settings = { workspace = true }
+heycode-prompt = { workspace = true }
+heycode-tools = { workspace = true }
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+cap-std = { workspace = true }
+cap-fs-ext = { workspace = true }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+heycode-exec = { workspace = true }
+heycode-native-tools = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true }
+serde_json = { workspace = true }
+heycode-web = { workspace = true }
+heycode-llm = { workspace = true }

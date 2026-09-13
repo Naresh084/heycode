@@ -1,0 +1,22 @@
+{
+  "role": "assistant",
+  "content": [
+    {
+      "type": "thinking",
+      "thinking": "The user asked for the weather in San Francisco. I have a get_weather tool, so I should call it with the city and country rather than guessing.",
+      "signature": "EqQBCkYIBBgCKkDbUnQ1oTZ2Yw=="
+    },
+    {
+      "type": "text",
+      "text": "Let me look that up."
+    },
+    {
+      "type": "tool_use",
+      "id": "toolu_01A09q90qw90lq917835lq9",
+      "name": "get_weather",
+      "input": {
+        "location": "San Francisco, US"
+      }
+    }
+  ]
+}

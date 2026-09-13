@@ -1,0 +1,5 @@
+schema_version = 27
+# Q17 saved schema 27 configuration
+[llm]
+protocol = "anthropic_messages"
+
